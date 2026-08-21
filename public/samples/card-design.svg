@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="600" viewBox="0 0 1050 600">
+  <defs>
+    <linearGradient id="bgd" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffaf3"/>
+      <stop offset="1" stop-color="#ffeedd"/>
+    </linearGradient>
+  </defs>
+  <rect width="1050" height="600" fill="url(#bgd)"/>
+  <circle cx="880" cy="110" r="150" fill="#ffd9b3" opacity="0.55"/>
+  <circle cx="120" cy="520" r="120" fill="#ffe3c2" opacity="0.6"/>
+  <g transform="translate(72,64)">
+    <circle r="15" cx="28" cy="28" fill="#e8590c"/>
+    <circle r="15" cx="52" cy="28" fill="#f76707" opacity="0.8"/>
+  </g>
+  <text x="150" y="102" font-family="Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif" font-size="36" font-weight="900" fill="#7a3b10">拾光設計</text>
+  <text x="150" y="140" font-family="Noto Sans TC, sans-serif" font-size="18" font-weight="500" fill="#a8743f">SHIGUANG DESIGN STUDIO</text>
+  <line x1="72" y1="196" x2="978" y2="196" stroke="#f3c9a5" stroke-width="2"/>
+  <text x="72" y="296" font-family="Noto Sans TC, sans-serif" font-size="50" font-weight="900" fill="#40241a">張小晴</text>
+  <text x="270" y="296" font-family="Noto Sans TC, sans-serif" font-size="24" font-weight="500" fill="#8a5a3b">Chang Hsiao-Ching</text>
+  <text x="72" y="342" font-family="Noto Sans TC, sans-serif" font-size="26" font-weight="700" fill="#e8590c">品牌設計師 / Brand Designer</text>
+  <text x="72" y="420" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#6b4a33">拾光設計工作室</text>
+  <text x="72" y="460" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#6b4a33">Mobile 0916-288-520</text>
+  <text x="72" y="540" font-family="Noto Sans TC, sans-serif" font-size="19" fill="#8a5a3b">106 台北市大安區光復南路 260 巷 30 號 1 樓</text>
+  <text x="480" y="460" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#6b4a33">hello@shiguang.design</text>
+  <text x="480" y="496" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#6b4a33">www.shiguang.design</text>
+</svg>

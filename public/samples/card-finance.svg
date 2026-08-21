@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="600" viewBox="0 0 1050 600">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1b3e"/>
+      <stop offset="1" stop-color="#16295c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e7c26a"/>
+      <stop offset="1" stop-color="#c99b3f"/>
+    </linearGradient>
+  </defs>
+  <rect width="1050" height="600" fill="url(#bg2)"/>
+  <rect x="26" y="26" width="998" height="548" fill="none" stroke="url(#gold)" stroke-width="3" rx="10"/>
+  <!-- logo -->
+  <g transform="translate(80,66)">
+    <circle r="38" cx="38" cy="38" fill="none" stroke="url(#gold)" stroke-width="6"/>
+    <text x="38" y="52" text-anchor="middle" font-family="Noto Sans TC, sans-serif" font-size="38" font-weight="900" fill="url(#gold)">豐</text>
+  </g>
+  <text x="180" y="108" font-family="Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif" font-size="36" font-weight="900" fill="#f5f0e1">寶豐證券</text>
+  <text x="180" y="148" font-family="Noto Sans TC, sans-serif" font-size="18" font-weight="500" fill="#9fb0d8">BAOFENG SECURITIES CO., LTD.</text>
+  <line x1="80" y1="200" x2="970" y2="200" stroke="#3a4d85" stroke-width="2"/>
+  <text x="80" y="298" font-family="Noto Sans TC, sans-serif" font-size="50" font-weight="900" fill="#ffffff">林雅婷</text>
+  <text x="280" y="298" font-family="Noto Sans TC, sans-serif" font-size="24" font-weight="500" fill="#c9d4ef">Lin Ya-Ting</text>
+  <text x="80" y="344" font-family="Noto Sans TC, sans-serif" font-size="26" font-weight="700" fill="url(#gold)">理財規劃部 / 理財專員</text>
+  <text x="80" y="424" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#dbe4f7">寶豐證券股份有限公司</text>
+  <text x="80" y="464" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#dbe4f7">TEL 02-2345-6789</text>
+  <text x="80" y="500" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#dbe4f7">Mobile 0988-777-111</text>
+  <text x="80" y="543" font-family="Noto Sans TC, sans-serif" font-size="19" fill="#9fb0d8">100 台北市中正區重慶南路一段 20 號 6 樓</text>
+  <text x="500" y="464" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#dbe4f7">yating.lin@baofeng.com.tw</text>
+  <text x="500" y="500" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#dbe4f7">www.baofeng.com.tw</text>
+</svg>

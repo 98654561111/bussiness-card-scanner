@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1050" height="600" viewBox="0 0 1050 600">
+  <defs>
+    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8faff"/>
+      <stop offset="1" stop-color="#e8edff"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1050" height="600" fill="url(#g1)"/>
+  <rect x="0" y="0" width="14" height="600" fill="url(#bar)"/>
+  <!-- logo -->
+  <g transform="translate(70,60)">
+    <rect width="86" height="86" rx="20" fill="url(#bar)"/>
+    <path d="M25 61 L43 39 L56 50 L66 33" stroke="#fff" stroke-width="7" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="64" cy="27" r="6" fill="#fff"/>
+  </g>
+  <text x="180" y="105" font-family="Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif" font-size="34" font-weight="900" fill="#1a2038">澄澈科技</text>
+  <text x="180" y="145" font-family="Noto Sans TC, sans-serif" font-size="19" font-weight="500" fill="#5c6590">CLEARVISION TECHNOLOGY INC.</text>
+  <line x1="70" y1="205" x2="980" y2="205" stroke="#d5dbf5" stroke-width="2"/>
+  <text x="70" y="300" font-family="Noto Sans TC, sans-serif" font-size="52" font-weight="900" fill="#1a2038">陳志明</text>
+  <text x="290" y="300" font-family="Noto Sans TC, sans-serif" font-size="26" font-weight="500" fill="#4b5270">Chen Chih-Ming</text>
+  <text x="70" y="348" font-family="Noto Sans TC, sans-serif" font-size="27" font-weight="700" fill="#4f46e5">軟體工程師 / Software Engineer</text>
+  <text x="70" y="418" font-family="Noto Sans TC, sans-serif" font-size="22" fill="#3a4166">澄澈科技股份有限公司</text>
+  <text x="70" y="460" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#3a4166">TEL  02-8765-4321</text>
+  <text x="70" y="497" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#3a4166">Mobile  0912-345-678</text>
+  <text x="470" y="460" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#3a4166">ming.chen@clearvision.com.tw</text>
+  <text x="470" y="497" font-family="Noto Sans TC, sans-serif" font-size="21" fill="#3a4166">www.clearvision.com.tw</text>
+  <text x="70" y="545" font-family="Noto Sans TC, sans-serif" font-size="20" fill="#707aa5">105 台北市松山區敦化北路 100 號 12 樓</text>
+</svg>
