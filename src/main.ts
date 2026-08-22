@@ -59,7 +59,8 @@ async function switchTab(tab: TabId): Promise<void> {
   current = tab
   if (location.hash !== `#/${tab}`) history.replaceState(null, '', `#/${tab}`)
   renderNav()
-  const view = document.getElementById('view')!
+  const view = document.getElementById('view')
+  if (!view) return
   if (tab === 'scan') renderScan(view)
   if (tab === 'cards') await renderCards(view)
   if (tab === 'insights') await renderDashboard(view)
@@ -74,11 +75,13 @@ function renderNav(): void {
 }
 
 function boot(): void {
-  document.getElementById('sidebar')!.innerHTML = sidebarHTML()
-  const top = document.getElementById('topnav')!
-  top.innerHTML = navHTML('top')
-  const bottom = document.getElementById('tabbar')!
-  bottom.innerHTML = navHTML('bottom')
+  // 防禦性初始化：任何一個容器抓不到都不讓整個 App 掛掉
+  const sidebar = document.getElementById('sidebar')
+  if (sidebar) sidebar.innerHTML = sidebarHTML()
+  const top = document.getElementById('topnav')
+  if (top) top.innerHTML = navHTML('top')
+  const bottom = document.getElementById('tabbar')
+  if (bottom) bottom.innerHTML = navHTML('bottom')
   document.querySelectorAll('.nav-btn').forEach((b) =>
     b.addEventListener('click', () => void switchTab((b as HTMLElement).dataset.tab as TabId)),
   )
@@ -91,11 +94,13 @@ function boot(): void {
   const hash = location.hash.replace('#/', '') as TabId
   current = TABS.some((t) => t.id === hash) ? hash : 'scan'
   renderNav()
-  const view = document.getElementById('view')!
-  if (current === 'scan') renderScan(view)
-  else if (current === 'cards') void renderCards(view)
-  else if (current === 'insights') void renderDashboard(view)
-  else void renderSettings(view)
+  const view = document.getElementById('view')
+  if (view) {
+    if (current === 'scan') renderScan(view)
+    else if (current === 'cards') void renderCards(view)
+    else if (current === 'insights') void renderDashboard(view)
+    else void renderSettings(view)
+  }
   void updateCount()
 
   window.addEventListener('hashchange', () => {

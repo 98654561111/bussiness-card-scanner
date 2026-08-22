@@ -41,6 +41,20 @@
     </div>
     <div id="modal-root"></div>
     <div id="toasts" class="toasts" aria-live="polite"></div>
+    <script>
+      // 任何 JS 錯誤直接顯示在畫面上，不再安靜地空白
+      window.addEventListener('error', function (e) {
+        var d = document.getElementById('fatal-err')
+        if (!d) {
+          d = document.createElement('div')
+          d.id = 'fatal-err'
+          d.style.cssText =
+            'position:fixed;left:12px;right:12px;bottom:14px;z-index:9999;background:#b91c1c;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;font-family:system-ui,sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)'
+          document.body.appendChild(d)
+        }
+        d.textContent = '程式發生錯誤：' + (e.message || '未知') + '（請重新整理，若持續發生請回報）'
+      })
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
