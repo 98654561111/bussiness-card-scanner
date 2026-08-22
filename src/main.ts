@@ -2,7 +2,7 @@
  * AI 名片管家 — 主程式（分頁路由）
  * ============================================================ */
 
-import './styles.css'
+import './app.css'
 import { renderScan, setScanRefreshCb, teardownScan } from './scan'
 import { refreshCards, renderCards } from './cards'
 import { renderDashboard } from './dashboard'
