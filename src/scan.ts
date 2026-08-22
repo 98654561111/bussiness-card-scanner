@@ -830,7 +830,7 @@ async function recognize(root: HTMLElement): Promise<void> {
       setProgress(root, true, stage, r),
     )
     state.usedLLM = usedLLM
-    if (llmError) toast(`雲端辨識失敗：${llmError}，已改用內建辨識`, 'err')
+    if (llmError) toast(`${engineLabel(settings)} 失敗：${llmError}，已改用內建辨識`, 'err')
     fillForm(ex)
     toast('辨識完成，請確認欄位後儲存', 'ok')
   } catch (e: any) {

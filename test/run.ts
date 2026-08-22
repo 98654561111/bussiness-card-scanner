@@ -18,6 +18,7 @@ import { extractFields, categorize } from '../src/extract'
 import { localAnswer } from '../src/chat'
 import { evaluateCapture, frameQuality } from '../src/vision/quality'
 import { parseJsonLoose, cleanBaseUrl } from '../src/llm'
+import { parseOcrResponse } from '../src/ocr-api'
 
 let pass = 0
 let fail = 0
@@ -377,6 +378,22 @@ console.log('\n== API Base URL 清理 ==')
     }
   }
   ok(bad === 0, `6 種常見輸入都正確清理（${cases.length - bad}/${cases.length}）`)
+}
+
+console.log('\n== 自訂 OCR 服務回覆解析 ==')
+
+{
+  const j1 = parseOcrResponse({ lines: [{ text: '陳志明', score: 0.98 }, { text: '0912-345-678', score: 0.9 }] })
+  ok(j1.length === 2 && j1[0].text === '陳志明', '標準格式 {lines}')
+  const j2 = parseOcrResponse('陳志明\n0912-345-678')
+  ok(j2.length === 2, '純文字格式')
+  // CnOCR 原生：[box, text, score]
+  const j3 = parseOcrResponse([[[[0, 0], [10, 0], [10, 10], [0, 10]], '澄澈科技', 0.95]])
+  ok(j3.length === 1 && j3[0].text === '澄澈科技' && j3[0].score === 0.95, 'CnOCR 原生 [box,text,score]')
+  const j4 = parseOcrResponse({ text: '姓名：陳志明\n電話：02-8888' })
+  ok(j4.length === 2, '{text} 單欄位')
+  ok(parseOcrResponse(null).length === 0, 'null 回空')
+  ok(parseOcrResponse({ lines: [] }).length === 0, '空 lines 回空')
 }
 
 console.log(`\n結果：${pass} 通過，${fail} 失敗\n`)

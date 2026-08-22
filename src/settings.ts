@@ -40,6 +40,14 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
             <small>Gemini 2.0 Flash 視覺模型</small>
           </div>
         </label>
+        <label class="engine-opt">
+          <input type="radio" name="engine" value="custom" ${s.engine === 'custom' ? 'checked' : ''}>
+          <div>
+            <strong>自訂 OCR 服務</strong>
+            <small>自架 CnOCR / PaddleOCR（附伺服器腳本）</small>
+          </div>
+          <span class="engine-tag">自架</span>
+        </label>
       </div>
 
       <div class="provider-fields" id="openaiFields" ${s.engine !== 'openai' ? 'hidden' : ''}>
@@ -51,6 +59,12 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
               <option value="gpt-4o-mini"></option><option value="gpt-4o"></option><option value="gpt-4.1-mini"></option><option value="gpt-4.1"></option>
             </datalist>
           </label>
+        </div>
+      </div>
+
+      <div class="provider-fields" id="customFields" ${s.engine !== 'custom' ? 'hidden' : ''}>
+        <div class="form-grid">
+          <label class="field span2"><span>OCR 服務網址 <small>（搭配 repo 內 server/cnocr_server.py，本機預設 http://localhost:8000；https 頁面無法連 http 服務，請在本機開啟 App）</small></span><input id="csUrl" type="text" value="${esc(s.custom.baseUrl)}" placeholder="http://localhost:8000"></label>
         </div>
       </div>
 
@@ -138,6 +152,9 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
         apiKey: (root.querySelector('#gmKey') as HTMLInputElement)?.value.trim() || '',
         model: (root.querySelector('#gmModel') as HTMLInputElement)?.value.trim() || 'gemini-2.0-flash',
       },
+      custom: {
+        baseUrl: (root.querySelector('#csUrl') as HTMLInputElement)?.value.trim() || 'http://localhost:8000',
+      },
       ocrLang: (root.querySelector('#ocrLang') as HTMLSelectElement).value,
       autoCrop: (root.querySelector('#autoCropSet') as HTMLSelectElement).value === 'on',
       captureMode: (root.querySelector('#capMode') as HTMLSelectElement).value as Settings['captureMode'],
@@ -150,6 +167,7 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
       const v = (root.querySelector('input[name="engine"]:checked') as HTMLInputElement).value
       root.querySelector<HTMLElement>('#openaiFields')!.hidden = v !== 'openai'
       root.querySelector<HTMLElement>('#geminiFields')!.hidden = v !== 'gemini'
+      root.querySelector<HTMLElement>('#customFields')!.hidden = v !== 'custom'
     }),
   )
 

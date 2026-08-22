@@ -8,6 +8,7 @@ import { buildCard, recognizeCardImage } from './recognize'
 import { autoCropDataUrl, fileToDataUrl } from './vision/canvas'
 import { ocrDispose } from './ocr'
 import { esc, icon, openModal, toast } from './components'
+import { engineLabel } from './llm'
 
 interface BatchItem {
   file: File
@@ -66,7 +67,7 @@ export function openBatchModal(files: File[]): void {
   const m = openModal(`
     <div class="batch-modal">
       <h3>${icon('cards', 17)} 批次掃描（${items.length} 張）</h3>
-      <div class="batch-engine">引擎：${settings.engine === 'builtin' ? '內建辨識（離線）' : esc(settings.engine === 'gemini' ? `雲端辨識（${settings.gemini.model}）` : `雲端辨識（${settings.openai.model}）`)}</div>
+      <div class="batch-engine">引擎：${esc(engineLabel(settings))}</div>
       <div class="progress-wrap"><div class="progress-bar"><i id="batchBar"></i></div><span class="progress-text" id="batchProg">準備中…</span></div>
       <div class="batch-list" id="batchList"></div>
       <div class="modal-actions">

@@ -143,6 +143,7 @@ export function loadSettings(): Settings {
       ...raw,
       openai: { ...DEFAULT_SETTINGS.openai, ...(raw.openai || {}) },
       gemini: { ...DEFAULT_SETTINGS.gemini, ...(raw.gemini || {}) },
+      custom: { ...DEFAULT_SETTINGS.custom, ...(raw.custom || {}) },
     }
     // 舊版 autoShutter 遷移到 captureMode
     if (!raw.captureMode && raw.autoShutter) merged.captureMode = 'stable'

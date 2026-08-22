@@ -156,7 +156,7 @@ export interface Extracted {
   rawText?: string
 }
 
-export type EngineId = 'builtin' | 'openai' | 'gemini'
+export type EngineId = 'builtin' | 'openai' | 'gemini' | 'custom'
 
 /** 自動拍攝模式 */
 export type CaptureMode = 'manual' | 'stable' | 'best'
@@ -172,6 +172,8 @@ export interface Settings {
   engine: EngineId
   openai: LLMProviderConfig
   gemini: LLMProviderConfig
+  /** 自訂 OCR 服務（CnOCR / PaddleOCR 等，見 server/cnocr_server.py） */
+  custom: { baseUrl: string }
   /** OCR 語言 */
   ocrLang: string
   /** 即時自動裁切 */
@@ -193,6 +195,9 @@ export const DEFAULT_SETTINGS: Settings = {
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
     apiKey: '',
     model: 'gemini-2.0-flash',
+  },
+  custom: {
+    baseUrl: 'http://localhost:8000',
   },
   ocrLang: 'chi_tra+eng',
   autoCrop: true,

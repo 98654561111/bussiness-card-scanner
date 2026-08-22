@@ -6,6 +6,7 @@
 import { Card, Extracted, Settings } from './types'
 import { ocrRecognize } from './ocr'
 import { llmRecognize } from './llm'
+import { customOcrRecognize } from './ocr-api'
 import { categorize } from './extract'
 import { uid } from './store'
 
@@ -24,7 +25,22 @@ export async function recognizeCardImage(
   settings: Settings,
   onProgress?: RecProgress,
 ): Promise<RecognizeResult> {
-  if (settings.engine !== 'builtin') {
+  if (settings.engine === 'custom') {
+    // 自訂 OCR 服務（CnOCR / PaddleOCR）
+    try {
+      onProgress?.('傳送給 OCR 服務辨識中…', 0.3)
+      const ex = await customOcrRecognize(imageDataUrl, settings.custom.baseUrl)
+      onProgress?.('辨識完成', 1)
+      if (!ex.category) ex.category = categorize(ex.company || '', ex.title || '', '')
+      return { ex, usedLLM: false }
+    } catch (e: any) {
+      const err = e?.message || String(e)
+      onProgress?.('OCR 服務失敗，改用內建辨識…', 0.1)
+      const ex = await ocrPath(imageDataUrl, settings, onProgress)
+      return { ex, usedLLM: false, llmError: err }
+    }
+  }
+  if (settings.engine === 'openai' || settings.engine === 'gemini') {
     try {
       onProgress?.('上傳圖片辨識中…', 0.2)
       const ex = await llmRecognize(imageDataUrl, settings)

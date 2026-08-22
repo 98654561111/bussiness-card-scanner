@@ -312,6 +312,11 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
       if (!res.ok) return { ok: false, message: httpErrorMessage(res.status, await res.text()) }
       return { ok: true, message: '連線成功，API Key 有效' }
     }
+    if (s.engine === 'custom') {
+      if (!s.custom.baseUrl) return { ok: false, message: '請先填入 OCR 服務網址' }
+      const { testCustomOcr } = await import('./ocr-api')
+      return await testCustomOcr(s.custom.baseUrl)
+    }
     if (s.engine === 'gemini') {
       if (!s.gemini.apiKey) return { ok: false, message: '請先填入 API Key' }
       const res = await fetchSmart(joinUrl(s.gemini.baseUrl, '/models'), {
@@ -329,6 +334,7 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
 export function engineLabel(s: Settings): string {
   if (s.engine === 'openai') return `雲端辨識（${s.openai.model || 'OpenAI 相容'}）`
   if (s.engine === 'gemini') return `雲端辨識（${s.gemini.model || 'Gemini'}）`
+  if (s.engine === 'custom') return '自訂 OCR 服務'
   return '內建辨識（離線）'
 }
 

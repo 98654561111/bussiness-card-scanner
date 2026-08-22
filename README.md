@@ -23,6 +23,9 @@
   - 支援 **OpenAI 相容 API**（GPT-4o / GPT-4.1…，可自訂 Base URL）與 **Google Gemini**
   - API Key 只存在自己的瀏覽器，設定期提供「測試連線」
   - 視覺 AI 失敗時自動 fallback 到內建 OCR
+- **自訂 OCR 服務（可選）**：自架 [CnOCR](https://github.com/breezedeus/CnOCR) / PaddleOCR，中文辨識品質更好
+  - 附現成伺服器腳本 `server/cnocr_server.py`（見下方說明）
+  - 回傳逐行文字＋信心度，低信心行自動過濾
 
 ### 🏷️ 自動歸類
 - 依公司 / 職稱 / 名片內容自動分類：科技、金融、不動產、醫療、教育、製造、貿易、餐飲、法律、設計、營建、物流、其他（13 類）
@@ -60,6 +63,19 @@ npm i --no-save sharp tesseract.js   # 沙盒離線時 OCR 段會自動略過
 npx tsx test/e2e.ts
 ```
 
+## 🐍 自訂 OCR 服務（CnOCR）
+
+想要更好的中文辨識？repo 附了 `server/cnocr_server.py`（FastAPI 包裝 CnOCR）：
+
+```bash
+pip install cnocr fastapi "uvicorn[standard]"
+uvicorn cnocr_server:app --host 0.0.0.0 --port 8000
+```
+
+然後在 App「設定 → 辨識引擎 → **自訂 OCR 服務**」填 `http://localhost:8000`。
+
+> 注意：https 頁面無法呼叫 http 服務（瀏覽器混合內容限制）——請在本機跑 App（`npm run dev` 用 `http://localhost:5173` 開啟）並搭配本機 OCR 服務使用。服務已開啟 CORS，也相容直接回傳 CnOCR / PaddleOCR 原生格式的其他自架服務。
+
 > HTTPS 說明：沙盒／部署平台（Cloudflare、e2b）會在**外層**以 HTTPS 連到伺服器，後端保持 HTTP 即可（預覽網址本身就是 https）。若在本機直接執行並需要相機（getUserMedia），用 `HTTPS=true npm run dev` 開啟自簽憑證 HTTPS，第一次瀏覽器會顯示警告，點「進階 → 繼續前往」即可。
 
 
@@ -94,6 +110,7 @@ src/
     ├── core.ts        # 純數學視覺核心（可 Node 單元測試）
     ├── quality.ts     # 畫面品質評估（清晰度/亮度/自動拍攝評分）
     └── canvas.ts      # Canvas 工具
-test/run.ts            # 單元測試（50 項）
+test/run.ts            # 單元測試（63 項）
+server/cnocr_server.py # 自訂 OCR 服務（CnOCR FastAPI 包裝，選配）
 public/samples/        # 範例名片（SVG）+ 示範桌面照
 ```
