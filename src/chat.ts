@@ -32,7 +32,7 @@ function loadHistory(): Msg[] {
       role: 'assistant',
       ts: Date.now(),
       text:
-        '你好！我是名片人脈助理 📇\n可以問我例如：\n- **科技業**有哪些聯絡人？\n- 有 **email** 的名片有幾張？\n- 列出所有**業務**職稱的人\n- 「澄澈科技」的電話是多少？',
+        '你好！我是名片人脈助理，可以問我例如：\n- **科技業**有哪些聯絡人？\n- 有 **email** 的名片有幾張？\n- 列出所有**業務**職稱的人\n- 「澄澈科技」的電話是多少？',
     },
   ]
 }
@@ -93,7 +93,7 @@ export function localAnswer(q: string, cards: Card[]): string {
     .sort((a, b) => b.s - a.s)
     .slice(0, 8)
   if (!scored.length) {
-    return `本機搜尋沒有找到符合「${q}」的名片。\n提示：設定 OpenAI / Gemini API Key 後，我可以用 AI 回答更複雜的問題（統計、分析、找關係）。`
+    return `本機搜尋沒有找到符合「${q}」的名片。\n提示：設定 API Key 後，我可以回答更複雜的問題（統計、分析、找關係）。`
   }
   const lines = scored.map(({ c }) => {
     const cat = (CATEGORY_MAP[c.category] || CATEGORY_MAP.other).label
@@ -112,7 +112,7 @@ function hasKey(s: Settings): boolean {
 
 async function llmAnswer(q: string, cards: Card[]): Promise<string> {
   const s = loadSettings()
-  const sys = `你是「AI 名片管家」的人脈助理，根據使用者的名片匣資料回答問題。
+  const sys = `你是「名片管家」的人脈助理，根據使用者的名片匣資料回答問題。
 規則：
 - 只依據下面提供的名片資料回答，絕不編造不存在的聯絡人或資訊
 - 統計數字要正確（可自行加總）
@@ -145,7 +145,7 @@ export function renderChatBox(container: HTMLElement, cards: Card[]): void {
     <div class="chat-head">
       <div>
         <h3>${icon('chat', 16)} 人脈助理</h3>
-        <small>${keyReady ? `已連接 ${esc(engineLabel(settings))}` : '本機搜尋模式（設定 AI Key 後可智能問答）'}</small>
+        <small>${keyReady ? `已連接 ${esc(engineLabel(settings))}` : '本機搜尋模式（設定 API Key 後可智慧問答）'}</small>
       </div>
       <button class="btn btn-ghost btn-sm" id="chatClear" title="清除對話">${icon('trash', 13)} 清除</button>
     </div>
@@ -193,7 +193,7 @@ export function renderChatBox(container: HTMLElement, cards: Card[]): void {
         try {
           answer = await llmAnswer(q, cards)
         } catch (e: any) {
-          answer = `⚠️ AI 連線失敗（${e?.message || e}），已改用本機搜尋：\n\n${localAnswer(q, cards)}`
+          answer = `⚠️ 雲端連線失敗（${e?.message || e}），已改用本機搜尋：\n\n${localAnswer(q, cards)}`
         }
       } else {
         answer = localAnswer(q, cards)

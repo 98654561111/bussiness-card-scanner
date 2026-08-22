@@ -34,6 +34,7 @@ const ICON_PATHS: Record<string, string> = {
     '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
   sparkles:
     '<path d="M12 3l1.9 4.6L18.5 9.5l-4.6 1.9L12 16l-1.9-4.6L5.5 9.5l4.6-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z"/>',
   phone:
@@ -62,7 +63,7 @@ export function toast(message: string, type: 'ok' | 'err' | 'info' = 'info'): vo
   const root = document.getElementById('toasts')!
   const el = document.createElement('div')
   el.className = `toast toast-${type}`
-  el.innerHTML = `${icon(type === 'ok' ? 'check' : type === 'err' ? 'close' : 'sparkles', 16)}<span>${esc(message)}</span>`
+  el.innerHTML = `${icon(type === 'ok' ? 'check' : type === 'err' ? 'close' : 'info', 16)}<span>${esc(message)}</span>`
   root.appendChild(el)
   setTimeout(() => el.classList.add('show'), 10)
   setTimeout(() => {

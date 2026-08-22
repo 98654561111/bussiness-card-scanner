@@ -101,7 +101,7 @@ export function renderScan(root: HTMLElement): void {
       ${idleHTML()}
     </div>
     <div class="scan-tips">
-      ${icon('sparkles', 14)} 小技巧：把名片放在深色桌面或白紙上，對比越清楚，自動裁切越精準。
+      ${icon('info', 13)} 小技巧：把名片放在深色桌面或白紙上，對比越清楚，自動裁切越精準。
     </div>
   </section>`
   wireIdle(root)
@@ -113,7 +113,7 @@ function idleHTML(): string {
     <div class="scan-hero">
       <div class="scan-hero-icon">${icon('camera', 30)}</div>
       <h2>掃描名片</h2>
-      <p>即時偵測邊緣、自動裁切，AI 一次搞定姓名、電話、公司與分類</p>
+      <p>自動偵測邊緣、裁切名片，擷取姓名、電話、公司等欄位並歸類</p>
     </div>
     <div class="scan-choices">
       <button class="choice" data-act="camera">
@@ -196,11 +196,11 @@ async function startCamera(stage: HTMLElement): Promise<void> {
     <canvas class="cam-overlay" id="camOverlay"></canvas>
     <div class="cam-status" id="camStatus">${icon('search', 14)} 偵測名片邊緣中…</div>
     <div class="ready-bar" id="readyBar"><i id="readyFill"></i></div>
-    <div class="cont-counter" id="contCounter" hidden>${icon('sparkles', 13)} 本輪已掃 0 張</div>
+    <div class="cont-counter" id="contCounter" hidden>${icon('cards', 13)} 本輪已掃 0 張</div>
     <div class="cam-flash" id="camFlash"></div>
   </div>
   <div class="mode-chips" id="modeChips">
-    <span class="mc-label">${icon('sparkles', 13)} 拍攝</span>
+    <span class="mc-label">拍攝模式</span>
     <button class="mchip" data-mode="manual">手動</button>
     <button class="mchip" data-mode="stable">穩定即拍</button>
     <button class="mchip" data-mode="best">最佳時機</button>
@@ -263,7 +263,7 @@ async function startCamera(stage: HTMLElement): Promise<void> {
   if (settings.continuousScan && stage.querySelector('#contCounter')) {
     const cc = stage.querySelector('#contCounter') as HTMLElement
     cc.hidden = false
-    cc.innerHTML = `${icon('sparkles', 13)} 本輪已掃 ${state.contCount} 張`
+    cc.innerHTML = `${icon('cards', 13)} 本輪已掃 ${state.contCount} 張`
   }
   stage.querySelector('#btnShutter')!.addEventListener('click', () => void shutter(stage))
   stage.querySelector('#btnStop')!.addEventListener('click', () => {
@@ -345,10 +345,10 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
       })
       readyBar.hidden = settings.captureMode === 'manual'
       readyFill.style.width = `${Math.round(ev.score * 100)}%`
-      readyFill.style.background = ev.ready ? 'linear-gradient(90deg,#16a34a,#4ade80)' : ev.score > 0.55 ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : 'linear-gradient(90deg,#dc2626,#f87171)'
+      readyFill.style.background = ev.ready ? '#16a34a' : ev.score > 0.55 ? '#d97706' : '#dc2626'
       const hint = ev.hints.length ? ` — ${ev.hints.join('、')}` : ''
       if (state.busy) {
-        status.innerHTML = `${icon('sparkles', 14)} 辨識中…`
+        status.innerHTML = `${icon('text', 14)} 辨識中…`
       } else if (now < state.cooldownUntil) {
         status.innerHTML = `${icon('check', 14)} 已拍攝，換下一張名片…`
       } else if (stable) {
@@ -405,7 +405,7 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
       drawQuadOverlay(overlay, null)
       readyFill.style.width = '0%'
       status.innerHTML = state.busy
-        ? `${icon('sparkles', 14)} 辨識中…`
+        ? `${icon('text', 14)} 辨識中…`
         : `${icon('search', 14)} 未偵測到名片，請加強名片與背景對比`
       status.classList.remove('ok')
     }
@@ -456,7 +456,7 @@ async function processContinuousShot(
 ): Promise<void> {
   const status = stage.querySelector<HTMLElement>('#camStatus')
   try {
-    if (status) status.innerHTML = `${icon('sparkles', 14)} 辨識第 ${state.contCount + 1} 張中…`
+    if (status) status.innerHTML = `${icon('text', 14)} 辨識第 ${state.contCount + 1} 張中…`
     let cropped: string
     let conf = 0.9
     if (quad) {
@@ -474,7 +474,7 @@ async function processContinuousShot(
     const cc = stage.querySelector<HTMLElement>('#contCounter')
     if (cc) {
       cc.hidden = false
-      cc.innerHTML = `${icon('sparkles', 13)} 本輪已掃 ${state.contCount} 張`
+      cc.innerHTML = `${icon('cards', 13)} 本輪已掃 ${state.contCount} 張`
     }
     toast(`已儲存「${card.name || card.company || '未命名'}」（${state.contCount}）`, 'ok')
   } catch (e: any) {
@@ -500,7 +500,7 @@ async function handleUpload(root: HTMLElement, file: File): Promise<void> {
 const SAMPLES = ['samples/card-tech.svg', 'samples/card-finance.svg', 'samples/card-design.svg']
 
 async function loadSample(stage: HTMLElement): Promise<void> {
-  stage.innerHTML = `<div class="scan-loading">${icon('sparkles', 20)} 產生範例名片照…</div>`
+  stage.innerHTML = `<div class="scan-loading">${icon('image', 20)} 產生範例名片照…</div>`
   try {
     const dataUrl = await makeSamplePhoto()
     sampleIdx++
@@ -580,14 +580,14 @@ async function enterReview(shotDataUrl: string, knownQuad?: Quad | null): Promis
         </div>
       </div>
       <div class="review-img-wrap" id="rvImgWrap">
-        <div class="scan-loading">${icon('sparkles', 20)} 偵測名片邊緣、自動裁切中…</div>
+        <div class="scan-loading">${icon('crop', 20)} 偵測名片邊緣、自動裁切中…</div>
       </div>
       <div class="crop-meta" id="rvMeta"></div>
 
       <div class="divider"></div>
 
       <div class="recog" id="recogBox">
-        <button class="btn btn-primary btn-lg" id="btnRecog">${icon('sparkles', 18)} 開始 AI 辨識</button>
+        <button class="btn btn-primary btn-lg" id="btnRecog">${icon('text', 18)} 開始辨識</button>
         <div class="engine-note" id="engineNote"></div>
         <div class="progress-wrap" id="progWrap" hidden>
           <div class="progress-bar"><i id="progBar"></i></div>
@@ -830,9 +830,9 @@ async function recognize(root: HTMLElement): Promise<void> {
       setProgress(root, true, stage, r),
     )
     state.usedLLM = usedLLM
-    if (llmError) toast(`視覺 AI 辨識失敗：${llmError}，已自動改用內建 OCR`, 'err')
+    if (llmError) toast(`雲端辨識失敗：${llmError}，已改用內建辨識`, 'err')
     fillForm(ex)
-    toast('辨識完成！請確認欄位後儲存', 'ok')
+    toast('辨識完成，請確認欄位後儲存', 'ok')
   } catch (e: any) {
     toast(`辨識失敗：${e?.message || e}`, 'err')
   } finally {

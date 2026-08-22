@@ -203,9 +203,9 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
 }
 
 export function engineLabel(s: Settings): string {
-  if (s.engine === 'openai') return `視覺 AI（${s.openai.model || 'OpenAI 相容'}）`
-  if (s.engine === 'gemini') return `視覺 AI（${s.gemini.model || 'Gemini'}）`
-  return '內建 AI OCR（離線）'
+  if (s.engine === 'openai') return `雲端辨識（${s.openai.model || 'OpenAI 相容'}）`
+  if (s.engine === 'gemini') return `雲端辨識（${s.gemini.model || 'Gemini'}）`
+  return '內建辨識（離線）'
 }
 
 /* ---------- 文字對話（AI 助理） ---------- */

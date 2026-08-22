@@ -66,7 +66,7 @@ export function openBatchModal(files: File[]): void {
   const m = openModal(`
     <div class="batch-modal">
       <h3>${icon('cards', 17)} 批次掃描（${items.length} 張）</h3>
-      <div class="batch-engine">引擎：${settings.engine === 'builtin' ? '內建 AI OCR（離線）' : esc(settings.engine === 'gemini' ? `視覺 AI（${settings.gemini.model}）` : `視覺 AI（${settings.openai.model}）`)}</div>
+      <div class="batch-engine">引擎：${settings.engine === 'builtin' ? '內建辨識（離線）' : esc(settings.engine === 'gemini' ? `雲端辨識（${settings.gemini.model}）` : `雲端辨識（${settings.openai.model}）`)}</div>
       <div class="progress-wrap"><div class="progress-bar"><i id="batchBar"></i></div><span class="progress-text" id="batchProg">準備中…</span></div>
       <div class="batch-list" id="batchList"></div>
       <div class="modal-actions">
@@ -112,7 +112,7 @@ export function openBatchModal(files: File[]): void {
     const dataUrl = await fileToDataUrl(it.file)
     const r = await autoCropDataUrl(dataUrl, 1800)
     it.thumb = r.cropped
-    it.note = 'AI 辨識中…'
+    it.note = '辨識中…'
     renderList()
     const { ex, usedLLM } = await recognizeCardImage(r.cropped, settings, (stage) => {
       it.note = stage

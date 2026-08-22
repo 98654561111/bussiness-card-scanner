@@ -35,7 +35,7 @@ const STAGE_TEXT: Record<string, string> = {
   'initializing tesseract': '初始化辨識引擎…',
   'loading language traineddata': '下載語言模型（首次較慢）…',
   'initializing api': '準備辨識…',
-  'recognizing text': 'AI 文字辨識中…',
+  'recognizing text': '文字辨識中…',
 }
 
 let workerP: Promise<any> | null = null

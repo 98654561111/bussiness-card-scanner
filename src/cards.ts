@@ -143,7 +143,7 @@ function renderGrid(root: HTMLElement): void {
     empty.hidden = false
     empty.innerHTML = cards.length
       ? `<div class="empty-ic">${icon('search', 26)}</div><h3>沒有符合條件的名片</h3><p>換個關鍵字或分類試試</p>`
-      : `<div class="empty-ic">${icon('cards', 26)}</div><h3>名片匣還是空的</h3><p>到「掃描」頁拍一張名片，AI 會自動擷取欄位並歸類</p>`
+      : `<div class="empty-ic">${icon('cards', 26)}</div><h3>名片匣還是空的</h3><p>到「掃描」頁拍一張名片，自動擷取欄位並歸類</p>`
   } else {
     empty.hidden = true
   }

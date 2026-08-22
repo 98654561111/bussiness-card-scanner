@@ -14,11 +14,11 @@ export type RecProgress = (stage: string, ratio: number) => void
 export interface RecognizeResult {
   ex: Extracted
   usedLLM: boolean
-  /** 視覺 AI 失敗時的錯誤訊息（已自動退回內建 OCR） */
+  /** 雲端辨識失敗時的錯誤訊息（已自動退回內建 OCR） */
   llmError?: string
 }
 
-/** 辨識一張名片圖片：優先視覺 AI（有設 Key 時），失敗自動退回內建 OCR */
+/** 辨識一張名片圖片：優先雲端視覺模型（有設 Key 時），失敗自動退回內建 OCR */
 export async function recognizeCardImage(
   imageDataUrl: string,
   settings: Settings,
@@ -26,14 +26,14 @@ export async function recognizeCardImage(
 ): Promise<RecognizeResult> {
   if (settings.engine !== 'builtin') {
     try {
-      onProgress?.('傳送圖片給 AI 模型…', 0.2)
+      onProgress?.('上傳圖片辨識中…', 0.2)
       const ex = await llmRecognize(imageDataUrl, settings)
-      onProgress?.('AI 辨識完成', 1)
+      onProgress?.('辨識完成', 1)
       if (!ex.category) ex.category = categorize(ex.company || '', ex.title || '', '')
       return { ex, usedLLM: true }
     } catch (e: any) {
       const llmError = e?.message || String(e)
-      onProgress?.('視覺 AI 失敗，改用內建 OCR…', 0.1)
+      onProgress?.('雲端辨識失敗，改用內建辨識…', 0.1)
       const ex = await ocrPath(imageDataUrl, settings, onProgress)
       return { ex, usedLLM: false, llmError }
     }

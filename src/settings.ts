@@ -15,14 +15,14 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
   root.innerHTML = `
   <section class="page settings-page">
     <div class="card set-card">
-      <h2>${icon('sparkles', 18)} AI 辨識引擎</h2>
-      <p class="set-desc">內建引擎可直接離線使用；設定 API Key 後可把名片照片直接傳給視覺 AI 模型，欄位擷取更精準。</p>
+      <h2>${icon('text', 18)} 辨識引擎</h2>
+      <p class="set-desc">內建引擎可直接離線使用，不需任何設定；若要更精準的欄位擷取，可設定 API Key 使用雲端視覺模型辨識。</p>
       <div class="engine-grid">
         <label class="engine-opt">
           <input type="radio" name="engine" value="builtin" ${s.engine === 'builtin' ? 'checked' : ''}>
           <div>
-            <strong>內建 AI OCR</strong>
-            <small>瀏覽器離線執行，免設定、免費</small>
+            <strong>內建辨識引擎</strong>
+            <small>瀏覽器離線執行，免設定</small>
           </div>
           <span class="engine-tag">免費</span>
         </label>

@@ -9,8 +9,8 @@ import { esc, icon } from './components'
 import { renderChatBox } from './chat'
 
 const DONUT_COLORS = [
-  '#4f46e5', '#7c3aed', '#a855f7', '#ec4899', '#f43f5e', '#f97316',
-  '#f59e0b', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#94a3b8',
+  '#2563eb', '#0e7490', '#0f766e', '#475569', '#7c2d12', '#92400e',
+  '#713f12', '#14532d', '#155e75', '#1e3a8a', '#374151', '#64748b', '#9ca3af',
 ]
 
 let subTab: 'charts' | 'chat' = 'charts'
@@ -21,7 +21,7 @@ export async function renderDashboard(root: HTMLElement): Promise<void> {
   <section class="page dash-page">
     <div class="seg" role="tablist">
       <button class="seg-btn" data-sub="charts">${icon('chart', 15)} 人脈圖表</button>
-      <button class="seg-btn" data-sub="chat">${icon('chat', 15)} AI 助理</button>
+      <button class="seg-btn" data-sub="chat">${icon('chat', 15)} 人脈助理</button>
     </div>
     <div id="dashBody"></div>
   </section>`
