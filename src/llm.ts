@@ -32,23 +32,55 @@ function stripDataUrl(dataUrl: string): { b64: string; mime: string } {
   return { mime: 'image/jpeg', b64: dataUrl }
 }
 
-function parseJsonLoose(text: string): any {
-  let t = text.trim()
+/** 從模型回覆中盡力抽出 JSON 物件 */
+export function parseJsonLoose(text: string): any {
+  let t = String(text || '').trim()
+  // 拿掉 markdown 圍籬（可能多段）
+  t = t.replace(/```(?:json)?/gi, '')
   t = t.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
   try {
     return JSON.parse(t)
   } catch {
-    const s = t.indexOf('{')
-    const e = t.lastIndexOf('}')
-    if (s >= 0 && e > s) {
-      try {
-        return JSON.parse(t.slice(s, e + 1))
-      } catch {
-        /* fallthrough */
+    /* 繼續嘗試 */
+  }
+  // 找第一個 { 到最後一個 } 的平衡區段
+  const s = t.indexOf('{')
+  if (s >= 0) {
+    let depth = 0
+    let inStr = false
+    let esc = false
+    for (let i = s; i < t.length; i++) {
+      const ch = t[i]
+      if (esc) {
+        esc = false
+        continue
+      }
+      if (ch === '\\') {
+        if (inStr) esc = true
+        continue
+      }
+      if (ch === '"') inStr = !inStr
+      if (inStr) continue
+      if (ch === '{') depth++
+      else if (ch === '}') {
+        depth--
+        if (depth === 0) {
+          const cand = t.slice(s, i + 1)
+          try {
+            return JSON.parse(cand)
+          } catch {
+            break
+          }
+        }
       }
     }
-    throw new Error('AI 回覆格式無法解析')
   }
+  const excerpt = String(text || '').trim().slice(0, 80)
+  throw new Error(
+    excerpt
+      ? `AI 回覆格式無法解析（回覆開頭：「${excerpt}…」）`
+      : 'AI 回覆為空（模型可能不支援圖片輸入，或被安全過濾擋下）',
+  )
 }
 
 function httpErrorMessage(status: number, body: string): string {
@@ -131,6 +163,12 @@ async function openaiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(body(withFormat)),
     })
+  const readText = (j: any): string => {
+    const c = j?.choices?.[0]?.message?.content
+    if (typeof c === 'string') return c
+    if (Array.isArray(c)) return c.map((p: any) => p?.text ?? '').join('')
+    return ''
+  }
   let res = await doFetch(true)
   if (res.status === 400) {
     // 部分相容端點不支援 response_format，重試一次
@@ -138,8 +176,30 @@ async function openaiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
   }
   if (!res.ok) throw new Error(httpErrorMessage(res.status, await res.text()))
   const json = await res.json()
-  const text: string = json?.choices?.[0]?.message?.content ?? ''
-  return normalizeExtracted(parseJsonLoose(text))
+  let text = readText(json)
+  try {
+    return normalizeExtracted(parseJsonLoose(text))
+  } catch (e) {
+    // 重試一次：加強「只輸出 JSON」指令、不要求 json_object 格式
+    try {
+      const body2: any = body(false)
+      body2.messages = [
+        ...body2.messages,
+        { role: 'assistant', content: text.slice(0, 500) || '（空回覆）' },
+        { role: 'user', content: '請只輸出 JSON 物件本身，不要任何說明文字或 markdown。' },
+      ]
+      const res2 = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify(body2),
+      })
+      if (!res2.ok) throw new Error(httpErrorMessage(res2.status, await res2.text()))
+      text = readText(await res2.json())
+      return normalizeExtracted(parseJsonLoose(text))
+    } catch {
+      throw e // 沿用原本的解析錯誤（含原文節錄）
+    }
+  }
 }
 
 /* ---------- Gemini ---------- */
@@ -163,9 +223,39 @@ async function geminiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
   })
   if (!res.ok) throw new Error(httpErrorMessage(res.status, await res.text()))
   const json = await res.json()
-  const parts = json?.candidates?.[0]?.content?.parts ?? []
-  const text = parts.map((p: any) => p?.text ?? '').join('')
-  return normalizeExtracted(parseJsonLoose(text))
+  const cand = json?.candidates?.[0]
+  const block = json?.promptFeedback?.blockReason
+  if (block) throw new Error(`內容被 Gemini 安全過濾擋下（${block}）`)
+  const finish = cand?.finishReason
+  const parts = cand?.content?.parts ?? []
+  let text = parts.map((p: any) => p?.text ?? '').join('')
+  if (!text.trim() && finish === 'MAX_TOKENS') throw new Error('回覆被長度上限截斷，請換模型或縮短設定')
+  if (!text.trim()) throw new Error('AI 回覆為空（模型可能不支援圖片輸入，或被安全過濾擋下）')
+  try {
+    return normalizeExtracted(parseJsonLoose(text))
+  } catch (e) {
+    // 重試一次：加強「只輸出 JSON」
+    try {
+      const res2 = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: buildPrompt() }, { inline_data: { mime_type: mime, data: b64 } }] },
+            { role: 'model', parts: [{ text: text.slice(0, 500) }] },
+            { role: 'user', parts: [{ text: '請只輸出 JSON 物件本身，不要任何說明文字或 markdown。' }] },
+          ],
+          generationConfig: { temperature: 0 },
+        }),
+      })
+      if (!res2.ok) throw new Error(httpErrorMessage(res2.status, await res2.text()))
+      const j2 = await res2.json()
+      text = (j2?.candidates?.[0]?.content?.parts ?? []).map((p: any) => p?.text ?? '').join('')
+      return normalizeExtracted(parseJsonLoose(text))
+    } catch {
+      throw e
+    }
+  }
 }
 
 export async function llmRecognize(imageDataUrl: string, s: Settings): Promise<Extracted> {

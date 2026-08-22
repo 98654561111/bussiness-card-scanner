@@ -17,6 +17,7 @@ import {
 import { extractFields, categorize } from '../src/extract'
 import { localAnswer } from '../src/chat'
 import { evaluateCapture, frameQuality } from '../src/vision/quality'
+import { parseJsonLoose } from '../src/llm'
 
 let pass = 0
 let fail = 0
@@ -329,6 +330,31 @@ console.log('\n== 智慧自動拍攝：畫面品質與時機評分 ==')
   // 構圖：太近 / 太遠
   ok(evaluateCapture({ stability: 1, quadRatio: 0.08, quality: { sharpness: 0.8, brightness: 0.55, contrast: 0.5 } }).hints.some((h) => h.includes('靠近')), '名片太小 → 提示靠近')
   ok(evaluateCapture({ stability: 1, quadRatio: 0.92, quality: { sharpness: 0.8, brightness: 0.55, contrast: 0.5 } }).hints.some((h) => h.includes('遠') || h.includes('入鏡')), '名片太大 → 提示拿遠')
+}
+
+console.log('\n== LLM 回覆 JSON 解析（各種模型壞習慣） ==')
+
+{
+  const j1 = parseJsonLoose('{"name":"陳志明"}')
+  ok(j1.name === '陳志明', '純 JSON')
+  const j2 = parseJsonLoose('```json\n{"name":"陳志明"}\n```')
+  ok(j2.name === '陳志明', 'markdown 圍籬')
+  const j3 = parseJsonLoose('好的，以下是結果：\n{"name":"陳志明","phones":["0912-345-678"]}\n希望有幫助！')
+  ok(j3.phones[0] === '0912-345-678', '前後有說明文字')
+  const j4 = parseJsonLoose('{"company":"ACME {Corp}"} 附註')
+  ok(j4.company === 'ACME {Corp}', '字串內含大括號')
+  try {
+    parseJsonLoose('')
+    ok(false, '空回覆應拋錯')
+  } catch (e: any) {
+    ok(String(e.message).includes('為空'), '空回覆錯誤訊息')
+  }
+  try {
+    parseJsonLoose('抱歉，我無法辨識這張圖片。')
+    ok(false, '純文字回覆應拋錯')
+  } catch (e: any) {
+    ok(String(e.message).includes('無法解析') && String(e.message).includes('抱歉'), '錯誤訊息包含原文節錄')
+  }
 }
 
 console.log(`\n結果：${pass} 通過，${fail} 失敗\n`)
