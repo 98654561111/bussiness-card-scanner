@@ -50,7 +50,8 @@
 
 ```bash
 npm install
-npm run dev     # 開發伺服器（預設 HTTPS：https://localhost:5173）
+npm run dev               # 開發伺服器（http://localhost:5173；部署平台在外層已提供 HTTPS）
+HTTPS=true npm run dev  # 本機 HTTPS 模式（自簽憑證，相機需要）
 npm test        # 單元測試（邊緣偵測、透視校正、欄位剖析、自動歸類）
 npm run build   # 正式建置到 dist/
 
@@ -59,9 +60,9 @@ npm i --no-save sharp tesseract.js   # 沙盒離線時 OCR 段會自動略過
 npx tsx test/e2e.ts
 ```
 
-> 開發伺服器使用**自簽憑證**的 HTTPS：第一次開啟瀏覽器會顯示「您的連線不是私人連線」警告，點「進階 → 繼續前往」即可。相機掃描（getUserMedia）在 HTTPS 下才能使用。
+> HTTPS 說明：沙盒／部署平台（Cloudflare、e2b）會在**外層**以 HTTPS 連到伺服器，後端保持 HTTP 即可（預覽網址本身就是 https）。若在本機直接執行並需要相機（getUserMedia），用 `HTTPS=true npm run dev` 開啟自簽憑證 HTTPS，第一次瀏覽器會顯示警告，點「進階 → 繼續前往」即可。
 
-> 開發伺服器預設即為 HTTPS（自簽憑證），相機可正常使用。
+
 
 ## 🛠️ 技術
 
