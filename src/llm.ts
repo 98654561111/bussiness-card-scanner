@@ -124,17 +124,54 @@ function normalizeExtracted(o: any): Extracted {
   }
 }
 
-function joinUrl(base: string, path: string): string {
-  return base.replace(/\/+$/, '') + path
+/** 清理使用者貼的 Base URL：去空白、結尾斜線、誤貼的完整端點路徑 */
+export function cleanBaseUrl(raw: string): string {
+  let u = (raw || '').trim().replace(/\/+$/, '')
+  u = u.replace(/\/chat\/completions$/i, '').replace(/\/models$/i, '').replace(/[:/]generateContent$/i, '')
+  return u
 }
+
+function joinUrl(base: string, path: string): string {
+  return cleanBaseUrl(base) + path
+}
+
+function networkErrorMessage(e: any): string {
+  if (e?.name === 'AbortError') return '連線逾時（超過時間限制），請確認網路或稍後再試'
+  const msg = String(e?.message || e)
+  if (/failed to fetch|networkerror|load failed|err_/i.test(msg)) {
+    return (
+      '無法連線到 API。常見原因：' +
+      '① Base URL 打錯或無法連線（只需填到 /v1，不用含 /chat/completions）；' +
+      '② 填了 http:// 位址 — 本頁面是 HTTPS，瀏覽器會封鎖 http 連線（請改 https://，本機模型除外）；' +
+      '③ 該服務不允許瀏覽器直接呼叫（CORS），請確認服務支援或加 proxy'
+    )
+  }
+  return `連線失敗：${msg}`
+}
+
+const LOCAL_RE = /\/\/(localhost|127\.|0\.0\.0\.0|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.)/
 
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 90000): Promise<Response> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
     return await fetch(url, { ...init, signal: ctrl.signal })
+  } catch (e) {
+    throw new Error(networkErrorMessage(e))
   } finally {
     clearTimeout(timer)
+  }
+}
+
+/** 失敗時：非本機的 http:// 自動改 https:// 重試一次（HTTPS 頁面封鎖混合內容） */
+async function fetchSmart(url: string, init: RequestInit, timeoutMs = 90000): Promise<Response> {
+  try {
+    return await fetchWithTimeout(url, init, timeoutMs)
+  } catch (e: any) {
+    if (url.startsWith('http://') && !LOCAL_RE.test(url)) {
+      return await fetchWithTimeout(url.replace('http://', 'https://'), init, timeoutMs)
+    }
+    throw e
   }
 }
 
@@ -158,7 +195,7 @@ async function openaiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
   })
   const url = joinUrl(baseUrl, '/chat/completions')
   const doFetch = (withFormat: boolean) =>
-    fetchWithTimeout(url, {
+    fetchSmart(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify(body(withFormat)),
@@ -188,7 +225,7 @@ async function openaiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
         { role: 'assistant', content: text.slice(0, 500) || '（空回覆）' },
         { role: 'user', content: '請只輸出 JSON 物件本身，不要任何說明文字或 markdown。' },
       ]
-      const res2 = await fetchWithTimeout(url, {
+      const res2 = await fetchSmart(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify(body2),
@@ -208,7 +245,7 @@ async function geminiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
   if (!apiKey) throw new Error('尚未設定 Gemini API Key，請到「設定」頁填入')
   const { b64, mime } = stripDataUrl(imageDataUrl)
   const url = joinUrl(baseUrl, `/models/${encodeURIComponent(model)}:generateContent`)
-  const res = await fetchWithTimeout(url, {
+  const res = await fetchSmart(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
     body: JSON.stringify({
@@ -236,7 +273,7 @@ async function geminiRecognize(imageDataUrl: string, s: Settings): Promise<Extra
   } catch (e) {
     // 重試一次：加強「只輸出 JSON」
     try {
-      const res2 = await fetchWithTimeout(url, {
+      const res2 = await fetchSmart(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
         body: JSON.stringify({
@@ -269,7 +306,7 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
   try {
     if (s.engine === 'openai') {
       if (!s.openai.apiKey) return { ok: false, message: '請先填入 API Key' }
-      const res = await fetchWithTimeout(joinUrl(s.openai.baseUrl, '/models'), {
+      const res = await fetchSmart(joinUrl(s.openai.baseUrl, '/models'), {
         headers: { Authorization: `Bearer ${s.openai.apiKey}` },
       }, 20000)
       if (!res.ok) return { ok: false, message: httpErrorMessage(res.status, await res.text()) }
@@ -277,7 +314,7 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
     }
     if (s.engine === 'gemini') {
       if (!s.gemini.apiKey) return { ok: false, message: '請先填入 API Key' }
-      const res = await fetchWithTimeout(joinUrl(s.gemini.baseUrl, '/models'), {
+      const res = await fetchSmart(joinUrl(s.gemini.baseUrl, '/models'), {
         headers: { 'x-goog-api-key': s.gemini.apiKey },
       }, 20000)
       if (!res.ok) return { ok: false, message: httpErrorMessage(res.status, await res.text()) }
@@ -285,10 +322,7 @@ export async function testConnection(s: Settings): Promise<{ ok: boolean; messag
     }
     return { ok: true, message: '內建 OCR 不需要連線設定' }
   } catch (e: any) {
-    return {
-      ok: false,
-      message: e?.name === 'AbortError' ? '連線逾時' : `連線失敗：${e?.message || '未知錯誤'}`,
-    }
+    return { ok: false, message: networkErrorMessage(e) }
   }
 }
 
@@ -318,7 +352,7 @@ export async function llmChat(system: string, history: ChatMessage[], s: Setting
         parts: [{ text: m.content }],
       })),
     ]
-    const res = await fetchWithTimeout(
+    const res = await fetchSmart(
       url,
       {
         method: 'POST',
@@ -338,7 +372,7 @@ export async function llmChat(system: string, history: ChatMessage[], s: Setting
   const { baseUrl, apiKey, model } = s.openai
   if (!apiKey) throw new Error('尚未設定 OpenAI API Key')
   const url = joinUrl(baseUrl, '/chat/completions')
-  const res = await fetchWithTimeout(
+  const res = await fetchSmart(
     url,
     {
       method: 'POST',

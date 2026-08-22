@@ -17,7 +17,7 @@ import {
 import { extractFields, categorize } from '../src/extract'
 import { localAnswer } from '../src/chat'
 import { evaluateCapture, frameQuality } from '../src/vision/quality'
-import { parseJsonLoose } from '../src/llm'
+import { parseJsonLoose, cleanBaseUrl } from '../src/llm'
 
 let pass = 0
 let fail = 0
@@ -355,6 +355,28 @@ console.log('\n== LLM 回覆 JSON 解析（各種模型壞習慣） ==')
   } catch (e: any) {
     ok(String(e.message).includes('無法解析') && String(e.message).includes('抱歉'), '錯誤訊息包含原文節錄')
   }
+}
+
+console.log('\n== API Base URL 清理 ==')
+
+{
+  const cases: [string, string][] = [
+    ['https://api.openai.com/v1', 'https://api.openai.com/v1'],
+    ['https://api.openai.com/v1/', 'https://api.openai.com/v1'],
+    ['  https://api.openai.com/v1/  ', 'https://api.openai.com/v1'],
+    ['https://api.openai.com/v1/chat/completions', 'https://api.openai.com/v1'],
+    ['https://host/api/models', 'https://host/api'],
+    ['https://host/v1beta/models/x:generateContent', 'https://host/v1beta/models/x'],
+  ]
+  let bad = 0
+  for (const [inp, want] of cases) {
+    const got = cleanBaseUrl(inp)
+    if (got !== want) {
+      bad++
+      console.error(`  ❌ cleanBaseUrl(${inp}) = ${got}，預期 ${want}`)
+    }
+  }
+  ok(bad === 0, `6 種常見輸入都正確清理（${cases.length - bad}/${cases.length}）`)
 }
 
 console.log(`\n結果：${pass} 通過，${fail} 失敗\n`)

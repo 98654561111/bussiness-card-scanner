@@ -44,7 +44,7 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
 
       <div class="provider-fields" id="openaiFields" ${s.engine !== 'openai' ? 'hidden' : ''}>
         <div class="form-grid">
-          <label class="field span2"><span>API Base URL</span><input id="oaUrl" type="text" value="${esc(s.openai.baseUrl)}" placeholder="https://api.openai.com/v1"></label>
+          <label class="field span2"><span>API Base URL <small>（填到 /v1 即可，不用含 /chat/completions；需為 https://）</small></span><input id="oaUrl" type="text" value="${esc(s.openai.baseUrl)}" placeholder="https://api.openai.com/v1"></label>
           <label class="field"><span>API Key</span><input id="oaKey" type="password" value="${esc(s.openai.apiKey)}" placeholder="sk-…" autocomplete="off"></label>
           <label class="field"><span>模型</span><input id="oaModel" type="text" value="${esc(s.openai.model)}" placeholder="gpt-4o-mini" list="oaModels">
             <datalist id="oaModels">
@@ -56,7 +56,7 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
 
       <div class="provider-fields" id="geminiFields" ${s.engine !== 'gemini' ? 'hidden' : ''}>
         <div class="form-grid">
-          <label class="field span2"><span>API Base URL</span><input id="gmUrl" type="text" value="${esc(s.gemini.baseUrl)}" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
+          <label class="field span2"><span>API Base URL <small>（需為 https://）</small></span><input id="gmUrl" type="text" value="${esc(s.gemini.baseUrl)}" placeholder="https://generativelanguage.googleapis.com/v1beta"></label>
           <label class="field"><span>API Key</span><input id="gmKey" type="password" value="${esc(s.gemini.apiKey)}" placeholder="AIza…" autocomplete="off"></label>
           <label class="field"><span>模型</span><input id="gmModel" type="text" value="${esc(s.gemini.model)}" placeholder="gemini-2.0-flash" list="gmModels">
             <datalist id="gmModels">
