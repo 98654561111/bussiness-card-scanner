@@ -50,7 +50,7 @@
 
 ```bash
 npm install
-npm run dev     # 開發伺服器（需要 HTTPS/localhost 才能使用相機）
+npm run dev     # 開發伺服器（預設 HTTPS：https://localhost:5173）
 npm test        # 單元測試（邊緣偵測、透視校正、欄位剖析、自動歸類）
 npm run build   # 正式建置到 dist/
 
@@ -59,7 +59,9 @@ npm i --no-save sharp tesseract.js   # 沙盒離線時 OCR 段會自動略過
 npx tsx test/e2e.ts
 ```
 
-> 相機即時預覽需要 HTTPS 或 localhost 環境（瀏覽器安全規範）。
+> 開發伺服器使用**自簽憑證**的 HTTPS：第一次開啟瀏覽器會顯示「您的連線不是私人連線」警告，點「進階 → 繼續前往」即可。相機掃描（getUserMedia）在 HTTPS 下才能使用。
+
+> 開發伺服器預設即為 HTTPS（自簽憑證），相機可正常使用。
 
 ## 🛠️ 技術
 
