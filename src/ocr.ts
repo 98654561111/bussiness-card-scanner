@@ -1,5 +1,6 @@
 /* ============================================================
  * 內建 OCR（Tesseract.js，由 CDN 載入、瀏覽器端執行）
+ * worker 依語言快取重用（批次掃描不用每次重建）
  * ============================================================ */
 
 import { Extracted } from './types'
@@ -37,20 +38,44 @@ const STAGE_TEXT: Record<string, string> = {
   'recognizing text': 'AI 文字辨識中…',
 }
 
-/** OCR 一次辨識（建立 worker → 辨識 → 釋放） */
+let workerP: Promise<any> | null = null
+let workerLang = ''
+let activeProgress: OCRProgress | null = null
+
+async function getWorker(lang: string): Promise<any> {
+  const T = await loadTesseract()
+  if (workerP && workerLang === lang) return workerP
+  if (workerP) {
+    workerP.then((w) => w.terminate()).catch(() => {})
+    workerP = null
+  }
+  workerLang = lang
+  workerP = T.createWorker(lang, 1, {
+    logger: (m: { status?: string; progress?: number }) => {
+      if (!activeProgress || !m.status) return
+      activeProgress(STAGE_TEXT[m.status] ?? '處理中…', typeof m.progress === 'number' ? m.progress : 0)
+    },
+  })
+  return workerP
+}
+
+/** 釋放 OCR worker（批次結束 / 離開頁面時呼叫） */
+export function ocrDispose(): void {
+  if (workerP) {
+    workerP.then((w) => w.terminate()).catch(() => {})
+    workerP = null
+    workerLang = ''
+  }
+}
+
+/** OCR 辨識（worker 重用） */
 export async function ocrRecognize(
   imageDataUrl: string,
   lang = 'chi_tra+eng',
   onProgress?: OCRProgress,
 ): Promise<Extracted> {
-  const T = await loadTesseract()
-  const worker = await T.createWorker(lang, 1, {
-    logger: (m: { status?: string; progress?: number }) => {
-      if (!onProgress || !m.status) return
-      const label = STAGE_TEXT[m.status] ?? '處理中…'
-      onProgress(label, typeof m.progress === 'number' ? m.progress : 0)
-    },
-  })
+  const worker = await getWorker(lang)
+  activeProgress = onProgress ?? null
   try {
     const ret = await worker.recognize(imageDataUrl)
     const text: string = ret?.data?.text ?? ''
@@ -58,6 +83,6 @@ export async function ocrRecognize(
     fields.rawText = text
     return fields
   } finally {
-    worker.terminate().catch(() => {})
+    activeProgress = null
   }
 }

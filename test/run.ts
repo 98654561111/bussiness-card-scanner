@@ -15,6 +15,7 @@ import {
   Pt,
 } from '../src/vision/core'
 import { extractFields, categorize } from '../src/extract'
+import { localAnswer } from '../src/chat'
 
 let pass = 0
 let fail = 0
@@ -260,6 +261,30 @@ ok(categorize('仁愛診所', '院長', '') === 'medical', '診所 → medical')
 ok(categorize('大漢建設有限公司', '', '') === 'realestate', '建設 → realestate')
 ok(categorize('全球運通物流股份有限公司', '', '') === 'logistics', '物流 → logistics')
 ok(categorize('隨便一家店', '', '') === 'other', '無關鍵字 → other')
+
+
+console.log('\n== AI 助理：本機搜尋後備 ==')
+
+{
+  const mk = (over: any) => ({
+    id: 'x', createdAt: 0, updatedAt: 0, name: '', title: '', company: '', department: '',
+    phones: [], faxes: [], emails: [], website: '', address: '', category: 'other' as const,
+    tags: [], notes: '', rawText: '', source: 'ocr' as const, imageCropped: '', ...over,
+  })
+  const demo = [
+    mk({ name: '陳志明', title: '軟體工程師', company: '澄澈科技', category: 'tech' }),
+    mk({ name: '林雅婷', title: '理財專員', company: '寶豐證券', category: 'finance', emails: ['y@x.tw'] }),
+    mk({ name: 'Emily Wang', title: 'Art Director', company: 'Sunrise Studio', category: 'design' }),
+  ]
+  const a1 = localAnswer('科技業', demo)
+  ok(a1.includes('陳志明'), `分類查詢命中（${a1.split('\n')[0]}）`)
+  const a2 = localAnswer('澄澈', demo)
+  ok(a2.includes('陳志明'), '公司關鍵字命中')
+  const a3 = localAnswer('找不到的東西zzz', demo)
+  ok(a3.includes('沒有找到') || a3.includes('沒有'), '無結果時友善回覆')
+  const a4 = localAnswer('任何', [])
+  ok(a4.includes('空的'), '空名片匣提示')
+}
 
 console.log(`\n結果：${pass} 通過，${fail} 失敗\n`)
 process.exit(fail ? 1 : 0)

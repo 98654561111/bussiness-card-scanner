@@ -4,9 +4,9 @@
 
 import { Card, Extracted, Settings } from './types'
 import { loadSettings, saveCard, saveSettings, uid } from './store'
-import { ocrRecognize } from './ocr'
-import { engineLabel, llmRecognize } from './llm'
-import { categorize } from './extract'
+import { engineLabel } from './llm'
+import { buildCard, recognizeCardImage } from './recognize'
+import { startBatchPick } from './batch'
 import {
   autoCropDataUrl,
   canvasToDataUrl,
@@ -32,6 +32,7 @@ interface ScanState {
   rect: { w: number; h: number }
   conf: number
   extracted: Extracted | null
+  usedLLM: boolean
   busy: boolean
   useOriginal: boolean
   lastQuad: Quad | null
@@ -49,6 +50,7 @@ const state: ScanState = {
   rect: { w: 0, h: 0 },
   conf: 0,
   extracted: null,
+  usedLLM: false,
   busy: false,
   useOriginal: false,
   lastQuad: null,
@@ -113,6 +115,11 @@ function idleHTML(): string {
         <strong>上傳圖片</strong>
         <small>從相簿挑一張名片照</small>
       </button>
+      <button class="choice" data-act="batch">
+        <span class="choice-ic">${icon('cards', 22)}</span>
+        <strong>批次掃描</strong>
+        <small>多張一次排隊辨識</small>
+      </button>
       <button class="choice" data-act="sample">
         <span class="choice-ic">${icon('image', 22)}</span>
         <strong>載入範例</strong>
@@ -131,6 +138,7 @@ function wireIdle(root: HTMLElement): void {
       const act = btn.dataset.act
       if (act === 'camera') startCamera(stage)
       if (act === 'upload') root.querySelector<HTMLInputElement>('#fileInput')?.click()
+      if (act === 'batch') startBatchPick()
       if (act === 'sample') void loadSample(stage)
     })
   })
@@ -660,25 +668,11 @@ async function recognize(root: HTMLElement): Promise<void> {
   }
 
   try {
-    let ex: Extracted | null = null
-    if (settings.engine !== 'builtin') {
-      try {
-        setProgress(root, true, `傳送圖片給 ${engineLabel(settings)}…`, 0.2)
-        ex = await llmRecognize(img, settings)
-        setProgress(root, true, 'AI 辨識完成', 1)
-      } catch (e: any) {
-        toast(`視覺 AI 辨識失敗：${e?.message || e}，自動改用內建 OCR`, 'err')
-      }
-    }
-    if (!ex) {
-      setProgress(root, true, '內建 AI OCR 啟動…', 0.1)
-      ex = await ocrRecognize(img, settings.ocrLang, (stage, p) => {
-        setProgress(root, true, stage, p)
-      })
-      setProgress(root, true, '剖析欄位與自動歸類…', 1)
-    }
-    // 若 AI 沒給分類 → 用規則自動歸類
-    if (!ex.category) ex.category = categorize(ex.company || '', ex.title || '', ex.rawText || '')
+    const { ex, usedLLM, llmError } = await recognizeCardImage(img, settings, (stage, r) =>
+      setProgress(root, true, stage, r),
+    )
+    state.usedLLM = usedLLM
+    if (llmError) toast(`視覺 AI 辨識失敗：${llmError}，已自動改用內建 OCR`, 'err')
     fillForm(ex)
     toast('辨識完成！請確認欄位後儲存', 'ok')
   } catch (e: any) {
@@ -694,29 +688,11 @@ async function saveReview(root: HTMLElement): Promise<void> {
   const form = root.querySelector<HTMLElement>('#reviewForm')!
   const data = readCardForm(form)
   if (!data) return
-  const now = Date.now()
-  const card: Card = {
-    id: uid(),
-    createdAt: now,
-    updatedAt: now,
-    name: data.name || '',
-    title: data.title || '',
-    company: data.company || '',
-    department: data.department || '',
-    phones: data.phones || [],
-    faxes: data.faxes || [],
-    emails: data.emails || [],
-    website: data.website || '',
-    address: data.address || '',
-    category: (data.category as Card['category']) || 'other',
-    tags: data.tags || [],
-    notes: data.notes || '',
-    rawText: state.extracted?.rawText || '',
-    source: settings.engine !== 'builtin' && state.extracted?.rawText?.includes('視覺 AI') ? 'llm' : 'ocr',
-    imageCropped: state.cropped,
-    imageOriginal: state.original,
-    confidence: state.conf,
-  }
+  const card = buildCard(
+    { ...(state.extracted as Extracted), ...data } as Extracted,
+    { cropped: state.cropped, original: state.original, conf: state.conf },
+    state.usedLLM,
+  )
   await saveCard(card)
   toast(`已儲存「${card.name || card.company}」至名片匣`, 'ok')
   state.mode = 'idle'

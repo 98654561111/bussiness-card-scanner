@@ -29,6 +29,18 @@
 - 編輯、刪除、分享（Web Share API，可分享名片圖 + 聯絡資訊）
 - 匯出：**vCard (.vcf)** 可直接匯入手機通訊錄、**CSV**（Excel）、**JSON** 備份 / 匯入
 
+### 📦 批次掃描
+- 一次挑多張名片圖 → 排隊**自動裁切 + AI 辨識 + 自動歸類儲存**
+- 逐張顯示進度與結果，失敗可單張重試；OCR worker 重用加速批次
+
+### 📊 洞察：人脈分析儀表板
+- 統計卡片（總數 / 公司 / 分類 / 本月新增）
+- 產業分布甜甜圈圖、近 12 個月新增趨勢、公司排行、資料完整度（純 SVG/CSS，離線可用）
+
+### 💬 洞察：AI 人脈助理
+- 自然語言問答：「科技業有誰？」「有 email 的有幾張？」「澄澈科技的電話？」
+- 有設 AI Key 時走 LLM 智能問答（只依名片資料回答）；沒有 Key 自動退回**本機關鍵字搜尋**，離線也能用
+
 ## 🚀 執行
 
 ```bash
@@ -58,17 +70,21 @@ npx tsx test/e2e.ts
 src/
 ├── main.ts            # 入口、分頁路由
 ├── scan.ts            # 掃描頁（相機、即時偵測、辨識流程、手動裁切）
+├── batch.ts           # 批次掃描（多張排隊自動處理）
 ├── cards.ts           # 名片匣（列表、詳情、編輯、匯出 vCard/CSV/JSON）
+├── dashboard.ts       # 洞察頁（人脈分析圖表 + AI 助理切換）
+├── chat.ts            # AI 人脈助理（LLM 問答 + 本機搜尋後備）
+├── recognize.ts       # 共用辨識管線（視覺 AI → OCR fallback → Card）
 ├── settings.ts        # 設定（AI 引擎、API Key、資料管理）
 ├── extract.ts         # OCR 文字 → 欄位剖析 + 自動歸類
-├── ocr.ts             # Tesseract.js 封裝
-├── llm.ts             # OpenAI / Gemini 視覺辨識
+├── ocr.ts             # Tesseract.js 封裝（worker 重用）
+├── llm.ts             # OpenAI / Gemini 視覺辨識 + 文字對話
 ├── store.ts           # IndexedDB 儲存
 ├── components.ts      # 共用 UI（modal、toast、表單、圖示）
 ├── types.ts           # 型別與分類字典
 └── vision/
     ├── core.ts        # 純數學視覺核心（可 Node 單元測試）
     └── canvas.ts      # Canvas 工具
-test/run.ts            # 單元測試
+test/run.ts            # 單元測試（41 項）
 public/samples/        # 範例名片（SVG）+ 示範桌面照
 ```

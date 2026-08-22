@@ -207,3 +207,63 @@ export function engineLabel(s: Settings): string {
   if (s.engine === 'gemini') return `視覺 AI（${s.gemini.model || 'Gemini'}）`
   return '內建 AI OCR（離線）'
 }
+
+/* ---------- 文字對話（AI 助理） ---------- */
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export async function llmChat(system: string, history: ChatMessage[], s: Settings): Promise<string> {
+  if (s.engine === 'gemini') {
+    const { baseUrl, apiKey, model } = s.gemini
+    if (!apiKey) throw new Error('尚未設定 Gemini API Key')
+    const url = joinUrl(baseUrl, `/models/${encodeURIComponent(model)}:generateContent`)
+    const contents = [
+      { role: 'user', parts: [{ text: system }] },
+      { role: 'model', parts: [{ text: '好的，我會只根據提供的名片資料回答。' }] },
+      ...history.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+    ]
+    const res = await fetchWithTimeout(
+      url,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({ contents, generationConfig: { temperature: 0.4, maxOutputTokens: 1024 } }),
+      },
+      60000,
+    )
+    if (!res.ok) throw new Error(httpErrorMessage(res.status, await res.text()))
+    const json = await res.json()
+    const parts = json?.candidates?.[0]?.content?.parts ?? []
+    const text = parts.map((p: any) => p?.text ?? '').join('')
+    if (!text) throw new Error('AI 沒有回覆內容')
+    return text
+  }
+  // OpenAI 相容
+  const { baseUrl, apiKey, model } = s.openai
+  if (!apiKey) throw new Error('尚未設定 OpenAI API Key')
+  const url = joinUrl(baseUrl, '/chat/completions')
+  const res = await fetchWithTimeout(
+    url,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.4,
+        messages: [{ role: 'system', content: system }, ...history],
+      }),
+    },
+    60000,
+  )
+  if (!res.ok) throw new Error(httpErrorMessage(res.status, await res.text()))
+  const json = await res.json()
+  const text: string = json?.choices?.[0]?.message?.content ?? ''
+  if (!text) throw new Error('AI 沒有回覆內容')
+  return text
+}
