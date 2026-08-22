@@ -16,6 +16,7 @@ import {
 } from '../src/vision/core'
 import { extractFields, categorize } from '../src/extract'
 import { localAnswer } from '../src/chat'
+import { evaluateCapture, frameQuality } from '../src/vision/quality'
 
 let pass = 0
 let fail = 0
@@ -284,6 +285,50 @@ console.log('\n== AI 助理：本機搜尋後備 ==')
   ok(a3.includes('沒有找到') || a3.includes('沒有'), '無結果時友善回覆')
   const a4 = localAnswer('任何', [])
   ok(a4.includes('空的'), '空名片匣提示')
+}
+
+
+console.log('\n== 智慧自動拍攝：畫面品質與時機評分 ==')
+
+{
+  const W = 160, H = 120
+  const mk = (fn: (x: number, y: number, i: number) => number): Uint8ClampedArray => {
+    const d = new Uint8ClampedArray(W * H * 4)
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = (y * W + x) * 4
+      const v = fn(x, y, i)
+      d[i] = d[i + 1] = d[i + 2] = v
+      d[i + 3] = 255
+    }
+    return d
+  }
+  const dark = mk(() => 20) // 暗且無細節
+  const qDark = frameQuality(W, H, dark)
+  ok(qDark.brightness < 0.15, `過暗偵測（亮度 ${qDark.brightness.toFixed(2)}）`)
+  ok(qDark.sharpness < 0.3, `無細節 → 低清晰度（${qDark.sharpness.toFixed(2)}）`)
+
+  const bright = mk(() => 250)
+  ok(frameQuality(W, H, bright).brightness > 0.9, '過亮偵測')
+
+  const sharpImg = mk((x) => (Math.floor(x / 4) % 2 ? 30 : 220)) // 高頻棋盤紋
+  ok(frameQuality(W, H, sharpImg).sharpness > 0.6, '高頻細節 → 高清晰度')
+
+  // 評分：暗 + 不穩 → 不該拍
+  const bad = evaluateCapture({ stability: 0.2, quadRatio: 0.1, quality: qDark })
+  ok(!bad.ready && bad.score < 0.5, `低分不觸發（${bad.score.toFixed(2)}）`)
+  ok(bad.hints.length > 0, `給出改善建議（${bad.hints.join('、')}）`)
+
+  // 評分：理想條件 → 該拍
+  const good = evaluateCapture({
+    stability: 1,
+    quadRatio: 0.4,
+    quality: { sharpness: 0.8, brightness: 0.55, contrast: 0.6 },
+  })
+  ok(good.ready && good.score >= 0.8, `理想條件觸發（${good.score.toFixed(2)}）`)
+
+  // 構圖：太近 / 太遠
+  ok(evaluateCapture({ stability: 1, quadRatio: 0.08, quality: { sharpness: 0.8, brightness: 0.55, contrast: 0.5 } }).hints.some((h) => h.includes('靠近')), '名片太小 → 提示靠近')
+  ok(evaluateCapture({ stability: 1, quadRatio: 0.92, quality: { sharpness: 0.8, brightness: 0.55, contrast: 0.5 } }).hints.some((h) => h.includes('遠') || h.includes('入鏡')), '名片太大 → 提示拿遠')
 }
 
 console.log(`\n結果：${pass} 通過，${fail} 失敗\n`)

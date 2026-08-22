@@ -19,7 +19,8 @@ import {
   rotateDataUrl,
   sourceToCanvas,
 } from './vision/canvas'
-import { Quad, quadMovement } from './vision/core'
+import { Quad, quadArea, quadMovement } from './vision/core'
+import { evaluateCapture, frameQuality } from './vision/quality'
 import { cardFormHTML, esc, icon, openModal, readCardForm, toast } from './components'
 
 /* ---------- 狀態 ---------- */
@@ -39,6 +40,12 @@ interface ScanState {
   stableTicks: number
   stableSince: number
   raf: number
+  /** 最佳時機模式的分數歷史 */
+  scoreHist: number[]
+  /** 連續掃描：已掃張數 / 冷卻截止 / 上一次拍到的名片框 */
+  contCount: number
+  cooldownUntil: number
+  lastCapturedQuad: Quad | null
 }
 
 const state: ScanState = {
@@ -57,6 +64,10 @@ const state: ScanState = {
   stableTicks: 0,
   stableSince: 0,
   raf: 0,
+  scoreHist: [],
+  contCount: 0,
+  cooldownUntil: 0,
+  lastCapturedQuad: null,
 }
 
 let settings: Settings = loadSettings()
@@ -184,12 +195,20 @@ async function startCamera(stage: HTMLElement): Promise<void> {
     <video id="camVideo" playsinline muted autoplay></video>
     <canvas class="cam-overlay" id="camOverlay"></canvas>
     <div class="cam-status" id="camStatus">${icon('search', 14)} 偵測名片邊緣中…</div>
+    <div class="ready-bar" id="readyBar"><i id="readyFill"></i></div>
+    <div class="cont-counter" id="contCounter" hidden>${icon('sparkles', 13)} 本輪已掃 0 張</div>
     <div class="cam-flash" id="camFlash"></div>
+  </div>
+  <div class="mode-chips" id="modeChips">
+    <span class="mc-label">${icon('sparkles', 13)} 拍攝</span>
+    <button class="mchip" data-mode="manual">手動</button>
+    <button class="mchip" data-mode="stable">穩定即拍</button>
+    <button class="mchip" data-mode="best">最佳時機</button>
   </div>
   <div class="cam-controls">
     <label class="switch-row"><input type="checkbox" id="tgCrop" ${settings.autoCrop ? 'checked' : ''}><span class="switch"></span>自動裁切</label>
     <button class="shutter" id="btnShutter" title="拍攝"><span></span></button>
-    <label class="switch-row"><input type="checkbox" id="tgAuto" ${settings.autoShutter ? 'checked' : ''}><span class="switch"></span>自動拍攝</label>
+    <label class="switch-row"><input type="checkbox" id="tgCont" ${settings.continuousScan ? 'checked' : ''}><span class="switch"></span>連續掃描</label>
   </div>
   <div class="cam-sub">
     <button class="btn btn-ghost btn-sm" id="btnUpload2">${icon('upload', 15)} 上傳</button>
@@ -210,11 +229,42 @@ async function startCamera(stage: HTMLElement): Promise<void> {
     settings.autoCrop = tgCrop.checked
     persistSettingsLite()
   })
-  const tgAuto = stage.querySelector<HTMLInputElement>('#tgAuto')!
-  tgAuto.addEventListener('change', () => {
-    settings.autoShutter = tgAuto.checked
+  // 拍攝模式
+  const syncChips = () => {
+    stage.querySelectorAll<HTMLElement>('.mchip').forEach((c) =>
+      c.classList.toggle('active', c.dataset.mode === settings.captureMode),
+    )
+  }
+  syncChips()
+  stage.querySelectorAll<HTMLElement>('.mchip').forEach((c) =>
+    c.addEventListener('click', () => {
+      settings.captureMode = c.dataset.mode as Settings['captureMode']
+      state.scoreHist = []
+      syncChips()
+      persistSettingsLite()
+    }),
+  )
+  const tgCont = stage.querySelector<HTMLInputElement>('#tgCont')!
+  tgCont.addEventListener('change', () => {
+    settings.continuousScan = tgCont.checked
+    if (tgCont.checked) {
+      state.contCount = 0
+      state.cooldownUntil = 0
+      state.lastCapturedQuad = null
+      const cc = stage.querySelector<HTMLElement>('#contCounter')
+      if (cc) cc.hidden = false
+      toast('連續掃描開啟：拍完會自動辨識存檔並繼續', 'info')
+    } else {
+      const cc = stage.querySelector<HTMLElement>('#contCounter')
+      if (cc) cc.hidden = true
+    }
     persistSettingsLite()
   })
+  if (settings.continuousScan && stage.querySelector('#contCounter')) {
+    const cc = stage.querySelector('#contCounter') as HTMLElement
+    cc.hidden = false
+    cc.innerHTML = `${icon('sparkles', 13)} 本輪已掃 ${state.contCount} 張`
+  }
   stage.querySelector('#btnShutter')!.addEventListener('click', () => void shutter(stage))
   stage.querySelector('#btnStop')!.addEventListener('click', () => {
     stopCamera()
@@ -244,6 +294,9 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
   const overlay = stage.querySelector<HTMLCanvasElement>('#camOverlay')!
   const status = stage.querySelector<HTMLElement>('#camStatus')!
   const flash = stage.querySelector<HTMLElement>('#camFlash')!
+  const readyFill = stage.querySelector<HTMLElement>('#readyFill')!
+  const readyBar = stage.querySelector<HTMLElement>('#readyBar')!
+  const qCanvas = makeCanvas(160, 120)
 
   const loop = () => {
     if (state.mode !== 'live' || !state.stream) return
@@ -255,6 +308,13 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
 
     // 偵測（detectOnSource 內部會縮圖）
     const det = detectOnSource(video, 380)
+    // 畫面品質（縮到 160px 計算，很輕）
+    const qs = 160 / video.videoWidth
+    qCanvas.width = 160
+    qCanvas.height = Math.round(video.videoHeight * qs)
+    const qctx = qCanvas.getContext('2d', { willReadFrequently: true })!
+    qctx.drawImage(video, 0, 0, qCanvas.width, qCanvas.height)
+    const q = frameQuality(qCanvas.width, qCanvas.height, qctx.getImageData(0, 0, qCanvas.width, qCanvas.height).data)
 
     // overlay 尺寸 = 顯示尺寸；影片以 contain 置中
     const box = overlay.parentElement!.getBoundingClientRect()
@@ -275,28 +335,78 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
       state.lastQuad = det.quad
       const stable = state.stableTicks >= 3
       drawQuadOverlay(overlay, dispQuad, { stable, label: stable ? '已鎖定 ✓' : undefined })
-      status.innerHTML = stable
-        ? `${icon('check', 14)} 已鎖定名片邊緣${settings.autoShutter ? '，自動拍攝中…' : '，按下快門'}`
-        : `${icon('search', 14)} 偵測邊緣中…（信心 ${Math.round(det.conf * 100)}%）`
-      status.classList.toggle('ok', stable)
-      // 自動拍攝：穩定 1.2 秒後觸發
-      if (stable) {
-        if (!state.stableSince) state.stableSince = now
-        if (settings.autoShutter && now - state.stableSince > 1200 && !state.busy) {
-          state.stableSince = 0
-          flash.classList.add('go')
-          setTimeout(() => flash.classList.remove('go'), 220)
-          void shutter(stage, true)
-        }
+
+      // ---- 自動拍攝時機評分 ----
+      const quadRatio = quadArea(det.quad) / (video.videoWidth * video.videoHeight)
+      const ev = evaluateCapture({
+        stability: stable ? 1 : Math.max(0, 1 - mv / 0.06),
+        quadRatio,
+        quality: q,
+      })
+      readyBar.hidden = settings.captureMode === 'manual'
+      readyFill.style.width = `${Math.round(ev.score * 100)}%`
+      readyFill.style.background = ev.ready ? 'linear-gradient(90deg,#16a34a,#4ade80)' : ev.score > 0.55 ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : 'linear-gradient(90deg,#dc2626,#f87171)'
+      const hint = ev.hints.length ? ` — ${ev.hints.join('、')}` : ''
+      if (state.busy) {
+        status.innerHTML = `${icon('sparkles', 14)} 辨識中…`
+      } else if (now < state.cooldownUntil) {
+        status.innerHTML = `${icon('check', 14)} 已拍攝，換下一張名片…`
+      } else if (stable) {
+        status.innerHTML = ev.ready
+          ? `${icon('check', 14)} 條件完美，自動拍攝！`
+          : `${icon('check', 14)} 已鎖定邊緣${settings.captureMode === 'manual' ? '，按下快門' : hint || '，自動拍攝中…'}`
       } else {
+        status.innerHTML = `${icon('search', 14)} 偵測邊緣中…（信心 ${Math.round(det.conf * 100)}%）${hint}`
+      }
+      status.classList.toggle('ok', stable && ev.ready)
+
+      // ---- 觸發拍攝 ----
+      const mode = settings.captureMode
+      let fire = false
+      if (mode !== 'manual' && !state.busy && now >= state.cooldownUntil) {
+        // 連續掃描：等使用者換名片（位置明顯不同）再拍
+        const sameCard = state.lastCapturedQuad && quadMovement(det.quad, state.lastCapturedQuad) < 0.05
+        if (sameCard) {
+          fire = false
+        } else if (mode === 'stable') {
+          if (stable) {
+            if (!state.stableSince) state.stableSince = now
+            if (now - state.stableSince > 1200 && ev.score > 0.55) fire = true
+          } else {
+            state.stableSince = 0
+          }
+        } else if (mode === 'best') {
+          state.scoreHist.push(ev.score)
+          if (state.scoreHist.length > 4) state.scoreHist.shift()
+          const hist = state.scoreHist
+          if (
+            hist.length >= 3 &&
+            hist[hist.length - 1] >= 0.72 &&
+            hist[hist.length - 2] >= 0.72 &&
+            hist[hist.length - 3] >= 0.72 &&
+            hist[hist.length - 1] <= hist[hist.length - 2] + 0.01 // 分數 plateau = 最佳時機
+          ) {
+            fire = true
+          }
+        }
+      }
+      if (fire) {
         state.stableSince = 0
+        state.scoreHist = []
+        flash.classList.add('go')
+        setTimeout(() => flash.classList.remove('go'), 220)
+        void shutter(stage, true)
       }
     } else {
       state.stableTicks = 0
       state.stableSince = 0
       state.lastQuad = null
+      state.scoreHist = []
       drawQuadOverlay(overlay, null)
-      status.innerHTML = `${icon('search', 14)} 未偵測到名片，請加強名片與背景對比`
+      readyFill.style.width = '0%'
+      status.innerHTML = state.busy
+        ? `${icon('sparkles', 14)} 辨識中…`
+        : `${icon('search', 14)} 未偵測到名片，請加強名片與背景對比`
       status.classList.remove('ok')
     }
   }
@@ -306,6 +416,7 @@ function startDetectLoop(stage: HTMLElement, video: HTMLVideoElement): void {
 async function shutter(stage: HTMLElement, fromAuto = false): Promise<void> {
   const video = stage.querySelector<HTMLVideoElement>('#camVideo')
   if (!video || !video.videoWidth) return
+  if (state.busy) return
   state.busy = true
   try {
     if (!fromAuto) {
@@ -322,10 +433,57 @@ async function shutter(stage: HTMLElement, fromAuto = false): Promise<void> {
       settings.autoCrop && state.lastQuad
         ? (state.lastQuad.map((p) => ({ x: p.x * qScale, y: p.y * qScale })) as Quad)
         : null
-    stopCamera()
-    await enterReview(shot, quad)
+
+    if (settings.continuousScan) {
+      // 連續掃描：相機保持開啟，背景自動辨識存檔後繼續
+      state.lastCapturedQuad = state.lastQuad
+      void processContinuousShot(shot, canvas, quad, stage)
+    } else {
+      stopCamera()
+      await enterReview(shot, quad)
+    }
   } finally {
     state.busy = false
+  }
+}
+
+/** 連續掃描：拍攝 → 裁切 → 辨識 → 自動存檔（相機不中斷） */
+async function processContinuousShot(
+  shot: string,
+  canvas: HTMLCanvasElement,
+  quad: Quad | null,
+  stage: HTMLElement,
+): Promise<void> {
+  const status = stage.querySelector<HTMLElement>('#camStatus')
+  try {
+    if (status) status.innerHTML = `${icon('sparkles', 14)} 辨識第 ${state.contCount + 1} 張中…`
+    let cropped: string
+    let conf = 0.9
+    if (quad) {
+      cropped = canvasToDataUrl(cropByQuad(canvas, quad), 0.88)
+    } else {
+      const r = await autoCropDataUrl(shot, 1800)
+      cropped = r.cropped
+      conf = r.conf
+    }
+    const { ex, usedLLM } = await recognizeCardImage(cropped, settings)
+    const card = buildCard(ex, { cropped, original: shot, conf }, usedLLM)
+    await saveCard(card)
+    state.contCount++
+    window.dispatchEvent(new CustomEvent('bcs:cards-updated'))
+    const cc = stage.querySelector<HTMLElement>('#contCounter')
+    if (cc) {
+      cc.hidden = false
+      cc.innerHTML = `${icon('sparkles', 13)} 本輪已掃 ${state.contCount} 張`
+    }
+    toast(`已儲存「${card.name || card.company || '未命名'}」（${state.contCount}）`, 'ok')
+  } catch (e: any) {
+    toast(`這張辨識失敗：${(e?.message || e).slice?.(0, 50) || e}，繼續拍下一張`, 'err')
+  } finally {
+    state.cooldownUntil = performance.now() + 2200
+    state.busy = false
+    state.lastCapturedQuad = state.lastQuad
+    state.scoreHist = []
   }
 }
 

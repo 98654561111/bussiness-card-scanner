@@ -158,6 +158,9 @@ export interface Extracted {
 
 export type EngineId = 'builtin' | 'openai' | 'gemini'
 
+/** 自動拍攝模式 */
+export type CaptureMode = 'manual' | 'stable' | 'best'
+
 export interface LLMProviderConfig {
   baseUrl: string
   apiKey: string
@@ -173,8 +176,10 @@ export interface Settings {
   ocrLang: string
   /** 即時自動裁切 */
   autoCrop: boolean
-  /** 邊緣穩定時自動拍攝 */
-  autoShutter: boolean
+  /** 自動拍攝模式：manual=手動、stable=邊緣穩定即拍、best=最佳時機 */
+  captureMode: CaptureMode
+  /** 連續掃描（拍完自動辨識存檔並繼續） */
+  continuousScan: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -191,7 +196,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   ocrLang: 'chi_tra+eng',
   autoCrop: true,
-  autoShutter: false,
+  captureMode: 'stable',
+  continuousScan: false,
 }
 
 export const OCR_LANGS: { id: string; label: string }[] = [

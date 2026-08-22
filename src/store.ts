@@ -138,12 +138,16 @@ export async function importCards(cards: Card[]): Promise<number> {
 export function loadSettings(): Settings {
   try {
     const raw = JSON.parse(localStorage.getItem(LS_SETTINGS) || '{}')
-    return {
+    const merged: Settings = {
       ...DEFAULT_SETTINGS,
       ...raw,
       openai: { ...DEFAULT_SETTINGS.openai, ...(raw.openai || {}) },
       gemini: { ...DEFAULT_SETTINGS.gemini, ...(raw.gemini || {}) },
     }
+    // 舊版 autoShutter 遷移到 captureMode
+    if (!raw.captureMode && raw.autoShutter) merged.captureMode = 'stable'
+    if (!['manual', 'stable', 'best'].includes(merged.captureMode)) merged.captureMode = 'stable'
+    return merged
   } catch {
     return { ...DEFAULT_SETTINGS }
   }

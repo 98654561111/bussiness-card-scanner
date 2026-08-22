@@ -74,6 +74,31 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
     </div>
 
     <div class="card set-card">
+      <h2>${icon('camera', 18)} 掃描與拍攝</h2>
+      <div class="form-grid">
+        <label class="field"><span>自動拍攝模式</span>
+          <select id="capMode">
+            <option value="manual" ${s.captureMode === 'manual' ? 'selected' : ''}>手動（自己按快門）</option>
+            <option value="stable" ${s.captureMode === 'stable' ? 'selected' : ''}>穩定即拍（邊緣穩定 1.2 秒）</option>
+            <option value="best" ${s.captureMode === 'best' ? 'selected' : ''}>最佳時機（穩定＋清晰＋構圖評分）</option>
+          </select>
+        </label>
+        <label class="field"><span>連續掃描</span>
+          <select id="contScan">
+            <option value="off" ${!s.continuousScan ? 'selected' : ''}>關閉（每張確認後儲存）</option>
+            <option value="on" ${s.continuousScan ? 'selected' : ''}>開啟（自動存檔並連續拍）</option>
+          </select>
+        </label>
+        <label class="field"><span>即時自動裁切</span>
+          <select id="autoCropSet">
+            <option value="on" ${s.autoCrop ? 'selected' : ''}>開啟</option>
+            <option value="off" ${!s.autoCrop ? 'selected' : ''}>關閉</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="card set-card">
       <h2>${icon('text', 18)} OCR 語言（內建引擎）</h2>
       <div class="form-grid">
         <label class="field"><span>名片語言</span>
@@ -114,8 +139,9 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
         model: (root.querySelector('#gmModel') as HTMLInputElement)?.value.trim() || 'gemini-2.0-flash',
       },
       ocrLang: (root.querySelector('#ocrLang') as HTMLSelectElement).value,
-      autoCrop: s.autoCrop,
-      autoShutter: s.autoShutter,
+      autoCrop: (root.querySelector('#autoCropSet') as HTMLSelectElement).value === 'on',
+      captureMode: (root.querySelector('#capMode') as HTMLSelectElement).value as Settings['captureMode'],
+      continuousScan: (root.querySelector('#contScan') as HTMLSelectElement).value === 'on',
     }
   }
 

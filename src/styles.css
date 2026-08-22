@@ -917,3 +917,55 @@ a:hover { text-decoration: underline; }
 .bi-ic.mute { background: #e9ebf8; color: #9aa1c7; }
 .bi-ic.spin { color: var(--accent); animation: pulse 1s infinite; }
 .bi-retry { flex: none; }
+
+/* ---------- 智慧自動拍攝 ---------- */
+.mode-chips {
+  display: flex; align-items: center; gap: 7px;
+  padding: 12px 14px 0;
+  flex-wrap: wrap;
+}
+.mc-label {
+  display: flex; align-items: center; gap: 4px;
+  color: var(--muted); font-size: 12.5px; font-weight: 700;
+}
+.mchip {
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 12.5px; font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.mchip:hover { border-color: #c9cdf5; color: var(--accent); }
+.mchip.active {
+  background: var(--grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(99, 60, 240, 0.3);
+}
+
+.ready-bar {
+  position: absolute; left: 12px; right: 12px; bottom: 44px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.ready-bar i {
+  display: block; height: 100%; width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #dc2626, #f87171);
+  transition: width 0.25s, background 0.25s;
+}
+
+.cont-counter {
+  position: absolute; top: 12px; right: 12px;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(16, 18, 38, 0.72);
+  color: #a5f3fc;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px; font-weight: 700;
+}
