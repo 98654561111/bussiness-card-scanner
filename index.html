@@ -19,20 +19,25 @@
   </head>
   <body>
     <div id="app">
-      <header class="topbar">
-        <div class="topbar-inner">
-          <div class="brand">
-            <span class="brand-logo">名</span>
-            <div class="brand-text">
-              <strong>名片管家</strong>
-              <small>掃描 · 辨識 · 自動歸類</small>
+      <!-- 桌面版：深色側邊欄 -->
+      <aside class="sidebar" id="sidebar"></aside>
+      <div class="app-main">
+        <!-- 手機版：頂欄與下方分頁列 -->
+        <header class="topbar">
+          <div class="topbar-inner">
+            <div class="brand">
+              <span class="brand-logo">名</span>
+              <div class="brand-text">
+                <strong>名片管家</strong>
+                <small>掃描 · 辨識 · 自動歸類</small>
+              </div>
             </div>
+            <nav class="topnav" id="topnav"></nav>
           </div>
-          <nav class="topnav" id="topnav"></nav>
-        </div>
-      </header>
-      <main id="view" class="view"></main>
-      <nav class="tabbar" id="tabbar"></nav>
+        </header>
+        <main id="view" class="view"></main>
+        <nav class="tabbar" id="tabbar"></nav>
+      </div>
     </div>
     <div id="modal-root"></div>
     <div id="toasts" class="toasts" aria-live="polite"></div>

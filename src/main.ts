@@ -22,17 +22,35 @@ let current: TabId = 'scan'
 
 function navHTML(cls: string): string {
   return TABS.map(
-    (t) => `<button class="nav-btn" data-tab="${t.id}">${icon(t.icon, 20)}<span>${t.label}</span>${t.id === 'cards' ? '<i class="nav-count" id="navCount" hidden></i>' : ''}</button>`,
+    (t) => `<button class="nav-btn" data-tab="${t.id}">${icon(t.icon, 20)}<span>${t.label}</span>${t.id === 'cards' ? '<i class="nav-count" hidden></i>' : ''}</button>`,
   ).join('')
+}
+
+function sidebarHTML(): string {
+  return `
+  <div class="sb-brand">
+    <span class="brand-logo">名</span>
+    <div class="brand-text"><strong>名片管家</strong><small>掃描 · 辨識 · 歸類</small></div>
+  </div>
+  <nav class="sb-nav">${navHTML('sidebar')}</nav>
+  <div class="sb-foot">
+    <div class="sb-stat" id="sbStat"><b>0</b><span>張名片</span></div>
+    <small>資料儲存於本機瀏覽器</small>
+  </div>`
 }
 
 async function updateCount(): Promise<void> {
   const n = await refreshCards()
-  document.querySelectorAll('#navCount').forEach((el) => {
+  document.querySelectorAll('.nav-count').forEach((el) => {
     const badge = el as HTMLElement
     badge.hidden = n === 0
     badge.textContent = String(n > 99 ? '99+' : n)
   })
+  const stat = document.getElementById('sbStat')
+  if (stat) {
+    stat.querySelector('b')!.textContent = String(n)
+    stat.hidden = n === 0
+  }
 }
 
 async function switchTab(tab: TabId): Promise<void> {
@@ -56,6 +74,7 @@ function renderNav(): void {
 }
 
 function boot(): void {
+  document.getElementById('sidebar')!.innerHTML = sidebarHTML()
   const top = document.getElementById('topnav')!
   top.innerHTML = navHTML('top')
   const bottom = document.getElementById('tabbar')!
