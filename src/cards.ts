@@ -22,6 +22,10 @@ let query = ''
 let filterCat: CategoryId | 'all' = 'all'
 let sortBy: 'new' | 'name' | 'company' = 'new'
 
+let selectMode = false
+const selected = new Set<string>()
+let filtered: Card[] = []
+
 export async function refreshCards(): Promise<number> {
   cards = await getAllCards()
   return cards.length
@@ -50,7 +54,18 @@ export async function renderCards(root: HTMLElement): Promise<void> {
             <button data-exp="json">${icon('download', 15)} 備份 JSON (.json)</button>
           </div>
         </div>
+        <button class="btn btn-ghost btn-sm" id="btnSelect">${icon('check', 15)} 選取</button>
       </div>
+    </div>
+    <div class="sel-bar" id="selBar" hidden>
+      <label class="switch-row"><input type="checkbox" id="selAll"><span>全選</span></label>
+      <strong id="selCount">已選 0 張</strong>
+      <span class="spacer"></span>
+      <button class="btn btn-ghost btn-sm" id="selTag">${icon('tag', 14)} 加標籤</button>
+      <button class="btn btn-ghost btn-sm" id="selVcf">${icon('cards', 14)} vCard</button>
+      <button class="btn btn-ghost btn-sm" id="selCsv">${icon('text', 14)} CSV</button>
+      <button class="btn btn-danger btn-sm" id="selDel">${icon('trash', 14)} 刪除</button>
+      <button class="btn btn-ghost btn-sm" id="selExit">完成</button>
     </div>
     <div class="cat-chips" id="catChips"></div>
     <div class="cards-grid" id="cardsGrid"></div>
@@ -89,6 +104,7 @@ export async function renderCards(root: HTMLElement): Promise<void> {
 
   renderChips(root)
   renderGrid(root)
+  wireSelect(root)
 }
 
 function renderChips(root: HTMLElement): void {
@@ -132,9 +148,18 @@ function renderGrid(root: HTMLElement): void {
     if (sortBy === 'company') return (a.company || 'zz').localeCompare(b.company || 'zz', 'zh-Hant')
     return b.createdAt - a.createdAt
   })
-  grid.innerHTML = list.map((c) => tileHTML(c)).join('')
+  filtered = list
+  grid.innerHTML = list.map((c) => tileHTML(c, selected.has(c.id))).join('')
   grid.querySelectorAll<HTMLButtonElement>('.card-tile').forEach((el) =>
     el.addEventListener('click', () => {
+      if (selectMode) {
+        const id = el.dataset.id!
+        if (selected.has(id)) selected.delete(id)
+        else selected.add(id)
+        el.classList.toggle('selected', selected.has(id))
+        updateSelBar(root)
+        return
+      }
       const card = cards.find((x) => x.id === el.dataset.id)
       if (card) openDetail(card, root)
     }),
@@ -149,10 +174,111 @@ function renderGrid(root: HTMLElement): void {
   }
 }
 
-function tileHTML(c: Card): string {
+/* ---------- 批次選取 ---------- */
+function wireSelect(root: HTMLElement): void {
+  const btn = root.querySelector<HTMLButtonElement>('#btnSelect')!
+  const bar = root.querySelector<HTMLElement>('#selBar')!
+  const selAll = root.querySelector<HTMLInputElement>('#selAll')!
+
+  const syncToggleLabel = () => {
+    btn.innerHTML = selectMode ? `${icon('x', 15)} 取消選取` : `${icon('check', 15)} 選取`
+    bar.hidden = !selectMode
+    selAll.checked = false
+    if (selectMode) updateSelBar(root)
+  }
+
+  btn.addEventListener('click', () => {
+    selectMode = !selectMode
+    if (!selectMode) selected.clear()
+    renderGrid(root)
+    syncToggleLabel()
+  })
+
+  root.querySelector('#selExit')!.addEventListener('click', () => {
+    selectMode = false
+    selected.clear()
+    renderGrid(root)
+    syncToggleLabel()
+  })
+
+  selAll.addEventListener('change', () => {
+    if (selAll.checked) filtered.forEach((c) => selected.add(c.id))
+    else selected.clear()
+    renderGrid(root)
+    updateSelBar(root)
+  })
+
+  root.querySelector('#selVcf')!.addEventListener('click', () => {
+    if (!selected.size) return toast('請先選取名片', 'err')
+    exportVcf(filtered.filter((c) => selected.has(c.id)))
+  })
+  root.querySelector('#selCsv')!.addEventListener('click', () => {
+    if (!selected.size) return toast('請先選取名片', 'err')
+    exportCsv(filtered.filter((c) => selected.has(c.id)))
+  })
+  root.querySelector('#selTag')!.addEventListener('click', () => openBulkTag(root))
+  root.querySelector('#selDel')!.addEventListener('click', () => void bulkDelete(root))
+}
+
+function updateSelBar(root: HTMLElement): void {
+  const bar = root.querySelector<HTMLElement>('#selBar')!
+  if (bar.hidden) return
+  root.querySelector('#selCount')!.textContent = `已選 ${selected.size} 張`
+  const selAll = root.querySelector<HTMLInputElement>('#selAll')!
+  selAll.checked = filtered.length > 0 && filtered.every((c) => selected.has(c.id))
+}
+
+function openBulkTag(root: HTMLElement): void {
+  const m = openModal(`
+    <div class="edit-modal">
+      <h3>${icon('tag', 17)} 批次加入標籤</h3>
+      <p class="set-desc">為選取的 ${selected.size} 張名片加上同一個標籤（不會覆蓋原有標籤）。</p>
+      <label class="field span2"><span>標籤</span><input name="bulkTag" type="text" placeholder="例：展場認識" autocomplete="off"></label>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-close>取消</button>
+        <button class="btn btn-primary" id="bulkTagSave">${icon('check', 15)} 加入</button>
+      </div>
+    </div>`, 'modal-sm')
+  const input = m.box.querySelector('[name="bulkTag"]') as HTMLInputElement
+  input.focus()
+  m.box.querySelector('#bulkTagSave')!.addEventListener('click', async () => {
+    const tag = input.value.trim()
+    if (!tag) {
+      toast('請輸入標籤', 'err')
+      return
+    }
+    let n = 0
+    for (const c of cards) {
+      if (!selected.has(c.id)) continue
+      if (!c.tags.includes(tag)) {
+        await saveCard({ ...c, tags: [...c.tags, tag], updatedAt: Date.now() })
+        n++
+      }
+    }
+    m.close()
+    toast(`已為 ${n} 張名片加上標籤「${tag}」`, 'ok')
+    await renderCards(root)
+  })
+}
+
+async function bulkDelete(root: HTMLElement): Promise<void> {
+  if (!selected.size) return
+  const n = selected.size
+  const ok = await confirmDialog('批次刪除名片？', `確定要刪除選取的 ${n} 張名片？此動作無法復原。`, { danger: true, okText: '刪除' })
+  if (!ok) return
+  for (const id of selected) await deleteCard(id)
+  selected.clear()
+  selectMode = false
+  toast(`已刪除 ${n} 張名片`, 'ok')
+  await renderCards(root)
+  window.dispatchEvent(new Event('bcs:cards-updated'))
+}
+
+function tileHTML(c: Card, isSel: boolean): string {
   const def = CATEGORY_MAP[c.category] || CATEGORY_MAP.other
   return `
-  <button class="card-tile" data-id="${esc(c.id)}">
+  <button class="card-tile ${isSel ? 'selected' : ''}" data-id="${esc(c.id)}">
+    ${selectMode ? `<span class="tile-check ${isSel ? 'on' : ''}">${isSel ? icon('check', 14) : ''}</span>` : ''}
     <span class="tile-img">
       ${c.imageCropped ? `<img src="${esc(c.imageCropped)}" alt="${esc(c.name || c.company)}" loading="lazy">` : `<span class="tile-img-fallback">${def.icon}</span>`}
     </span>

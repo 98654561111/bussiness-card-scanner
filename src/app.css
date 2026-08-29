@@ -603,6 +603,7 @@ a:hover { text-decoration: underline; }
   gap: 18px;
 }
 .card-tile {
+  position: relative;
   display: flex; flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -646,6 +647,40 @@ a:hover { text-decoration: underline; }
   padding: 48px 16px;
   color: var(--muted);
 }
+
+/* 批次選取 */
+.sel-bar {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: var(--shadow-lg);
+}
+.sel-bar .switch-row { color: #cdd7ec; }
+.sel-bar .switch-row .switch { background: #4a5270; }
+.sel-bar .switch-row input:checked + .switch { background: var(--accent); }
+.sel-bar .spacer { flex: 1; }
+.sel-bar strong { font-size: 13.5px; white-space: nowrap; }
+.sel-bar .btn-ghost { background: rgba(255, 255, 255, 0.1); border-color: transparent; color: #fff; }
+.sel-bar .btn-ghost:hover { background: rgba(255, 255, 255, 0.2); }
+.sel-bar .btn-danger { background: #f87171; color: #3b0a0a; }
+.sel-bar .btn-danger:hover { background: #fca5a5; }
+
+.card-tile.selecting { cursor: pointer; }
+.card-tile.selected { outline: 2.5px solid var(--accent); outline-offset: -2px; }
+.card-tile .tile-check {
+  position: absolute; top: 9px; left: 9px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid var(--border);
+  color: #fff;
+  display: grid; place-items: center;
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.card-tile .tile-check.on { background: var(--accent); border-color: var(--accent); }
 .empty h3 { color: var(--text); margin: 10px 0 4px; }
 .empty p { margin: 0; font-size: 13.5px; }
 .empty-ic {
