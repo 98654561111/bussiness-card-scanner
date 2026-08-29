@@ -101,7 +101,7 @@ export function renderScan(root: HTMLElement): void {
       ${idleHTML()}
     </div>
     <div class="scan-tips">
-      ${icon('info', 13)} 小技巧：把名片放在深色桌面或白紙上，對比越清楚，自動裁切越精準。
+      ${icon('info', 13)} 小技巧：把名片放在深色桌面或白紙上，對比越清楚，自動裁切越精準。開啟「自動抓拍」後，偵測到名片邊緣穩定即自動拍照。
     </div>
   </section>`
   wireIdle(root)
@@ -208,6 +208,7 @@ async function startCamera(stage: HTMLElement): Promise<void> {
   <div class="cam-controls">
     <label class="switch-row"><input type="checkbox" id="tgCrop" ${settings.autoCrop ? 'checked' : ''}><span class="switch"></span>自動裁切</label>
     <button class="shutter" id="btnShutter" title="拍攝"><span></span></button>
+    <label class="switch-row"><input type="checkbox" id="tgAuto" ${settings.captureMode !== 'manual' ? 'checked' : ''}><span class="switch"></span>自動抓拍</label>
     <label class="switch-row"><input type="checkbox" id="tgCont" ${settings.continuousScan ? 'checked' : ''}><span class="switch"></span>連續掃描</label>
   </div>
   <div class="cam-sub">
@@ -241,9 +242,24 @@ async function startCamera(stage: HTMLElement): Promise<void> {
       settings.captureMode = c.dataset.mode as Settings['captureMode']
       state.scoreHist = []
       syncChips()
+      syncAutoSwitch()
       persistSettingsLite()
     }),
   )
+  // 自動抓拍主開關：開 → stable（預設自動），關 → 手動
+  const tgAuto = stage.querySelector<HTMLInputElement>('#tgAuto')!
+  const syncAutoSwitch = () => {
+    tgAuto.checked = settings.captureMode !== 'manual'
+  }
+  syncAutoSwitch()
+  tgAuto.addEventListener('change', () => {
+    settings.captureMode = tgAuto.checked ? 'stable' : 'manual'
+    state.scoreHist = []
+    state.stableSince = 0
+    syncChips()
+    persistSettingsLite()
+    toast(tgAuto.checked ? '自動抓拍已開啟：鎖定名片邊緣後自動拍攝' : '已切回手動拍攝', 'info')
+  })
   const tgCont = stage.querySelector<HTMLInputElement>('#tgCont')!
   tgCont.addEventListener('change', () => {
     settings.continuousScan = tgCont.checked
