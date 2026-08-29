@@ -5,6 +5,7 @@
 
 import { Card, Extracted, Settings } from './types'
 import { ocrRecognize } from './ocr'
+import { paddleRecognize } from './ocr-paddle'
 import { llmRecognize } from './llm'
 import { customOcrRecognize } from './ocr-api'
 import { categorize } from './extract'
@@ -52,6 +53,19 @@ export async function recognizeCardImage(
       onProgress?.('雲端辨識失敗，改用內建辨識…', 0.1)
       const ex = await ocrPath(imageDataUrl, settings, onProgress)
       return { ex, usedLLM: false, llmError }
+    }
+  }
+  if (settings.engine === 'paddle') {
+    try {
+      onProgress?.('PaddleOCR 辨識中…', 0.1)
+      const ex = await paddleRecognize(imageDataUrl, (stage, p) => onProgress?.(stage, p))
+      if (!ex.category) ex.category = categorize(ex.company || '', ex.title || '', ex.rawText || '')
+      return { ex, usedLLM: false }
+    } catch (e: any) {
+      const err = e?.message || String(e)
+      onProgress?.('PaddleOCR 失敗，改用 Tesseract 內建辨識…', 0.1)
+      const ex = await ocrPath(imageDataUrl, settings, onProgress)
+      return { ex, usedLLM: false, llmError: err }
     }
   }
   const ex = await ocrPath(imageDataUrl, settings, onProgress)

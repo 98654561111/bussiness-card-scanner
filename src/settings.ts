@@ -21,8 +21,16 @@ export async function renderSettings(root: HTMLElement): Promise<void> {
         <label class="engine-opt">
           <input type="radio" name="engine" value="builtin" ${s.engine === 'builtin' ? 'checked' : ''}>
           <div>
-            <strong>內建辨識引擎</strong>
+            <strong>內建辨識引擎（Tesseract）</strong>
             <small>瀏覽器離線執行，免設定</small>
+          </div>
+          <span class="engine-tag">免費</span>
+        </label>
+        <label class="engine-opt">
+          <input type="radio" name="engine" value="paddle" ${s.engine === 'paddle' ? 'checked' : ''}>
+          <div>
+            <strong>PaddleOCR 引擎（PP-OCRv5）</strong>
+            <small>中 / 英 / 日 / 繁中單模型，中文準確度更佳</small>
           </div>
           <span class="engine-tag">免費</span>
         </label>

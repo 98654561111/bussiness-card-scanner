@@ -16,6 +16,10 @@ export default defineConfig({
     strictPort: true,
     allowedHosts: true,
   },
+  // onnxruntime-web 以 CDN 方式載入 wasm，排除預打包可避免 dev 解析問題
+  optimizeDeps: {
+    exclude: ['onnxruntime-web'],
+  },
   build: {
     target: 'es2020',
   },

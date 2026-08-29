@@ -19,7 +19,8 @@
 ### 🤖 AI 辨識（拍照傳給 AI）
 - **內建引擎（免設定、離線）**：Tesseract.js OCR（繁中/簡中/英/日可選）+ 規則式欄位剖析
   - 自動擷取：姓名、職稱、公司、部門、電話／手機／傳真（含分機）、Email、網址、地址
-- **視覺 AI 引擎（可選）**：把名片照片直接傳給 AI 模型，擷取更精準
+  - **PaddleOCR 引擎（PP-OCRv5，免設定、離線）**：基於 [`@ocr-web/core`](https://github.com/bent2685/ocr-web)（onnxruntime-web + WASM），中／英／日／繁中單模型一次辨識，中文準確度明顯優於 Tesseract，模型與字典自 jsDelivr CDN 載入
+  - **視覺 AI 引擎（可選）**：把名片照片直接傳給 AI 模型，擷取更精準
   - 支援 **OpenAI 相容 API**（GPT-4o / GPT-4.1…，可自訂 Base URL）與 **Google Gemini**
   - API Key 只存在自己的瀏覽器，設定期提供「測試連線」
   - 視覺 AI 失敗時自動 fallback 到內建 OCR

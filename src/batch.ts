@@ -7,6 +7,7 @@ import { saveCard } from './store'
 import { buildCard, recognizeCardImage } from './recognize'
 import { autoCropDataUrl, fileToDataUrl } from './vision/canvas'
 import { ocrDispose } from './ocr'
+import { paddleDispose } from './ocr-paddle'
 import { esc, icon, openModal, toast } from './components'
 import { engineLabel } from './llm'
 
@@ -155,6 +156,7 @@ export function openBatchModal(files: File[]): void {
       running = false
       updateProgress()
       ocrDispose()
+      paddleDispose()
       const ok = items.filter((i) => i.status === 'done').length
       if (ok > 0) {
         window.dispatchEvent(new CustomEvent('bcs:cards-updated'))

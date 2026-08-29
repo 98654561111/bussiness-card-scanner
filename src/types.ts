@@ -156,7 +156,7 @@ export interface Extracted {
   rawText?: string
 }
 
-export type EngineId = 'builtin' | 'openai' | 'gemini' | 'custom'
+export type EngineId = 'builtin' | 'paddle' | 'openai' | 'gemini' | 'custom'
 
 /** 自動拍攝模式 */
 export type CaptureMode = 'manual' | 'stable' | 'best'
